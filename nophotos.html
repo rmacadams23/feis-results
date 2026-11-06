@@ -127,7 +127,8 @@
   .st { display:inline-block; padding:3px 9px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap; }
   .st.grey { background:#eef1f4; color:#5b6875; } .st.work { background:#e7f0fb; color:#1f4f8a; } .st.warn { background:#fff1e0; color:#9a4a00; }
   .st.ready { background:#e3f4ea; color:var(--pri2); } .st.done { background:#ede7f6; color:#4a2a7a; }
-  .pill.onair { background:#b42318; color:#fff; font-size:10px; letter-spacing:.05em; }
+  .pill.onair { background:#b42318; color:#fff; font-size:10px; letter-spacing:.05em; border:0; cursor:pointer; padding:3px 8px; vertical-align:middle; }
+  .pill.onair:hover { background:#8f1c13; }
   .chips { display:flex; gap:5px; }
   .chip { min-width:38px; height:30px; padding:0 7px; border-radius:15px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:2px; border:1px solid #d5dbe1; background:#fff; color:#8a96a3; }
   .chip.part { background:#e7f0fb; border-color:#bcd3f0; color:#1f4f8a; }
@@ -221,7 +222,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.14</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.15</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -831,7 +832,7 @@ function renderOverview(){
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
     <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
     ${state.comps.map(c => { const [st,k] = compStatus(c), D=live(c).length;
-      return `<tr class="ovRow" data-row="${c.id}"><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <span class="pill onair">ON SCREEN</span>':''}<span class="nm">${D} dancers</span></td>
+      return `<tr class="ovRow" data-row="${c.id}"><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}<span class="nm">${D} dancers</span></td>
         <td class="num hide-m">${D}</td>
         <td><div class="chips">${c.judges.map((n,j)=>{ const e=judgeComplete(c,j), ver=isVerified(c,j);
           const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
@@ -845,6 +846,8 @@ function renderOverview(){
   const go = (c, j) => { state.editId=c.id; state.judgeTab=j; state.tab='scores'; save(); render(); scrollTo(0,0); };
   main.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(getComp(b.dataset.go), +b.dataset.j));
   main.querySelectorAll('[data-enter]').forEach(b => b.onclick = () => go(getComp(b.dataset.enter), -1));
+  const toShow = () => { state.tab='show'; save(); render(); scrollTo(0,0); };
+  main.querySelectorAll('[data-onair]').forEach(b => b.onclick = toShow);
   main.querySelectorAll('tr.ovRow').forEach(tr => tr.onclick = e => { if (e.target.closest('button, label, input, a')) return; go(getComp(tr.dataset.row), -1); });
   main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
   if (photosOn()) {
@@ -960,7 +963,7 @@ function renderCompSheets(c){
   const D = live(c).length;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ Overview</button><h2 style="margin:0">${esc(c.name)} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ Overview</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="jCards">${c.judges.map((n,j) => { const e = judgeComplete(c,j), ver = isVerified(c,j), vv = c.verified?.[j];
       const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
@@ -969,6 +972,7 @@ function renderCompSheets(c){
   </section>
   <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary">${summaryHTML(c)}</div></section>`;
   main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { state.judgeTab = +b.dataset.open; save(); renderScores(); scrollTo(0,0); });
+  main.querySelectorAll('[data-onair]').forEach(b => b.onclick = () => { state.tab='show'; save(); render(); scrollTo(0,0); });
   document.getElementById('toOv').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   if (photosOn()) main.querySelectorAll('[data-thumb]').forEach(async el => { const u = await getPhoto(c, +el.dataset.thumb); if (u && document.body.contains(el)) { el.innerHTML = `<img src="${u}" alt="">`; el.classList.add('has'); } else if (document.body.contains(el)) el.classList.add('none'); });
 }
@@ -982,7 +986,7 @@ function renderScores(){
   const usePhotos = photosOn(), n0 = usePhotos ? 1 : 0;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}</h2></div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}</h2></div>
     <div class="judgeTabs" id="jtabs"></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
@@ -1034,6 +1038,7 @@ function renderScores(){
     d.dnd = !d.dnd; R.ticks.delete(d.id); save(); renderScores(); pushDisplay(); toast(d.dnd ? `${d.no} marked did not dance.` : `${d.no} put back in.`);
   });
   if ($('addLate')) $('addLate').onclick = () => addDancerDialog(c);
+  main.querySelectorAll('[data-onair]').forEach(b => b.onclick = () => { state.tab='show'; save(); render(); scrollTo(0,0); });
   $('toOv2').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   $('toAll').onclick = () => { state.judgeTab = -1; save(); renderScores(); scrollTo(0,0); };
   if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
