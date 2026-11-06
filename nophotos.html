@@ -170,6 +170,7 @@
   .cfHas { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--warn); font-weight:600; }
   .labOk { background:#e3f4ea; color:var(--pri2); border-radius:8px; padding:10px 12px; margin-bottom:10px; }
   .labOk small { color:var(--ink); }
+  .printBox { border:1px solid var(--line); background:#fafbfc; border-radius:8px; padding:12px 14px; margin-bottom:12px; }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -212,7 +213,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.11</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.12</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -410,6 +411,48 @@ function printLabels(comps){
   </style></head><body><div class="bar"><button onclick="print()">Print</button>Fits Avery 5160 / 8160 address labels (30 per page). Stick one on the top of each adjudicator's sheet.</div><div class="sheet">${labels.join('')}</div></body></html>`;
   const w = window.open('', '_blank');
   if (!w) return toast('Labels can’t open here — print them from your website or the laptop file.');
+  w.document.open(); w.document.write(html); w.document.close();
+}
+function printSheets(comps){
+  const ev = state.settings.eventName, logo = state.settings.logoL;
+  const qrSvg = text => { const q = qrcode(0, 'Q'); q.addData(text); q.make(); return q.createSvgTag({ cellSize:4, margin:0, scalable:true }); };
+  const pages = comps.flatMap(c => c.judges.map((n,j) => {
+    const ds = c.dancers, extra = 3, rows = ds.length + extra;
+    const rh = Math.max(0.3, Math.min(0.55, 6.6 / rows));   // inches per row, fits one page for typical fields
+    const markCols = c.entry==='place' ? ['Placing'] : (c.rounds>1 ? [...Array.from({length:c.rounds},(_,i)=>`Round ${i+1}`), 'Total'] : ['Mark']);
+    return `<section class="pg">
+      <div class="hd">
+        <div class="hl">${logo ? `<img class="lg" src="${logo}" alt="">` : ''}<div><div class="ev">${esc(ev)}</div><div class="ti">Adjudicator’s Mark Sheet</div></div></div>
+        ${typeof qrcode === 'function' && !NO_PHOTOS ? `<div class="qr">${qrSvg(labelPayload(c,j))}<div class="qc">Do not cover</div></div>` : ''}
+      </div>
+      <table class="fld"><tr><th>Competition</th><td>${esc(c.name.replace(/^Demo — /,''))}</td></tr><tr><th>Adjudicator ${j+1}</th><td>${esc(n)}</td></tr></table>
+      <table class="mk" style="--rh:${rh}in"><thead><tr><th class="no">Dancer No</th>${markCols.map(h=>`<th class="m">${h}</th>`).join('')}<th>Comments</th></tr></thead><tbody>
+        ${ds.map(d => `<tr><td class="no">${esc(d.no)}</td>${markCols.map(()=>'<td></td>').join('')}<td></td></tr>`).join('')}
+        ${Array.from({length:extra}, () => `<tr class="ex"><td class="no"></td>${markCols.map(()=>'<td></td>').join('')}<td></td></tr>`).join('')}
+      </tbody></table>
+      <div class="sg"><span>Signature</span><i></i><span>Time handed in</span><i class="sh"></i></div>
+    </section>`; }));
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Score sheets</title><style>
+    @page { size: letter; margin: 0.45in 0.5in; }
+    body { margin:0; font-family: Arial, sans-serif; color:#111; }
+    .bar { padding:10px; background:#f4f6f9; border-bottom:1px solid #ddd; font-size:14px; } .bar button { font-size:15px; padding:6px 14px; margin-right:10px; }
+    @media print { .bar { display:none; } }
+    @media screen { .pg { width:7.5in; margin:16px auto; padding:0.4in; box-shadow:0 2px 10px rgba(0,0,0,.15); background:#fff; } body { background:#e9ecef; } }
+    .pg { page-break-after: always; break-after: page; }
+    .hd { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .hl { display:flex; align-items:center; gap:10px; } .lg { width:0.75in; height:0.75in; border-radius:50%; }
+    .ev { font-size:15pt; font-weight:bold; } .ti { font-size:11pt; color:#444; margin-top:2px; }
+    .qr { width:1.05in; text-align:center; } .qr svg { width:1.05in; height:1.05in; display:block; } .qc { font-size:6.5pt; color:#777; margin-top:2px; }
+    .fld { border-collapse:collapse; margin:10px 0 12px; width:100%; } .fld th { text-align:left; width:1.3in; font-size:10pt; color:#444; padding:4px 0; font-weight:normal; }
+    .fld td { font-size:14pt; font-weight:bold; border-bottom:1px solid #999; padding:4px 6px; }
+    .mk { border-collapse:collapse; width:100%; } .mk th { background:#ece8f3; font-size:10pt; padding:6px; border:1px solid #888; text-align:left; }
+    .mk td { border:1px solid #888; height:var(--rh); padding:0 8px; font-size:13pt; }
+    .mk .no { width:1.05in; } .mk th.m { width:1.05in; } .mk tr.ex td { background:#fafafa; }
+    .mk thead { display:table-header-group; } .mk tr { break-inside:avoid; }
+    .sg { display:flex; align-items:flex-end; gap:8px; margin-top:16px; font-size:10pt; color:#444; } .sg i { flex:1; border-bottom:1px solid #999; height:18px; } .sg i.sh { flex:.45; }
+  </style></head><body><div class="bar"><button onclick="print()">Print</button>One page per adjudicator. Dancer numbers are pre-filled in draw order, with 3 spare rows for late entries.${NO_PHOTOS ? '' : ' The code in the corner files the photo automatically.'}</div>${pages.join('')}</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return toast('Sheets can’t open here — print them from your website or the laptop file.');
   w.document.open(); w.document.write(html); w.document.close();
 }
 async function savePhoto(c, j, file){   // returns where it was saved, or null
@@ -827,7 +870,12 @@ function renderSetup(){
       <label>Places to announce <input id="cP" type="number" min="0" style="width:150px" value="${c.places||''}" placeholder="auto: ${Math.ceil(live(c).length/2)} (top half)"></label>
     </div>
     <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
-    ${NO_PHOTOS ? '' : `<div class="row"><button id="lblThis">🏷 Print sheet labels — this competition</button><button id="lblAll">🏷 Print sheet labels — all competitions</button><span class="muted" style="padding-bottom:6px">Stick one on each adjudicator's sheet; photos then file themselves.</span></div>`}
+    <div class="printBox"><b>Before the event — print for the adjudicators</b>
+      <div class="row" style="margin:8px 0 4px"><button id="shThis">🖨 Score sheets — this competition</button><button id="shAll">🖨 Score sheets — all competitions</button></div>
+      <div class="muted">One page per adjudicator, with the competition, adjudicator and dancer numbers already filled in${NO_PHOTOS ? '' : ', plus a code that files the photo automatically'}.</div>
+      ${NO_PHOTOS ? '' : `<div class="row" style="margin:10px 0 4px"><button id="lblThis">🏷 Stick-on labels — this competition</button><button id="lblAll">🏷 Stick-on labels — all competitions</button></div>
+      <div class="muted">For sheets you don’t print yourself: one sticker per adjudicator’s sheet (Avery 5160).</div>`}
+    </div>
     <div class="row"><button id="dupComp">Duplicate setup for next competition</button><button id="delComp" class="danger">Delete this competition</button></div>
   </section>
   <section class="card"><h2>Dancers <span class="muted">— ${c.dancers.length} entered, listed in the order they appear on the score grid</span></h2>
@@ -859,6 +907,8 @@ function renderSetup(){
       if (/^dancer/i.test(no)) return; c.dancers.push({id:uid(),no,name:name||'',school:school||''}); added++; });
     save(); render(); pushDisplay(); if (added) toast(`Added ${added} dancers.`);
   };
+  const realOrThis = () => state.comps.filter(x => !isDemo(x) || isDemo(c));
+  $('shThis').onclick = () => printSheets([c]); $('shAll').onclick = () => printSheets(realOrThis());
   if ($('lblThis')) { $('lblThis').onclick = () => printLabels([c]); $('lblAll').onclick = () => printLabels(state.comps.filter(x => !isDemo(x) || isDemo(c))); }
   $('delComp').onclick = async () => {
     if (!(await askConfirm(`Delete “${c.name}”?`, 'This removes the competition and all its scores. It can’t be undone.'))) return;
