@@ -247,6 +247,7 @@
   .dropLine { height:4px; border-radius:2px; background:var(--pri); margin:-2px 0; }
   .schRow input.autoT { color:#6b6b7b; font-style:italic; } .schRow input.pinned { font-weight:700; border-color:var(--pri); } .schRow .tWrap { width:158px; display:inline-flex; gap:2px; align-items:center; }
   .schRow .nm2 small { display:block; font-weight:400; } .inl { flex-direction:row !important; align-items:center; gap:6px; } .lateP { background:#fdecea; color:var(--bad); }
+  .syncNudge { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .syncNudge span { flex:1; min-width:260px; }
   details.timing { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:8px 0; background:#fcfbfd; } details.timing summary { cursor:pointer; font-weight:700; } .tmTbl { max-width:560px; }
   @media (max-width:760px){ .schC { grid-template-columns:60px 1fr; } .schC .st, .schC .schGo { grid-column:2; } }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -1247,7 +1248,9 @@ function bindScheduleEditor(rerender){
 function renderOverview(){
   const counts = {};
   ovComps().forEach(c => { const k = compStatus(c)[1]; counts[k] = (counts[k]||0)+1; });
-  main.innerHTML = `
+  const nudge = !(state.settings.sync && state.settings.sync.on) && !state.syncNudgeOff;
+  main.innerHTML = `${nudge ? `<div class="hint syncNudge"><span>☁ <b>Scoring on more than one device?</b> Connect a Google Sheet so laptops and tablets stay in step (works offline, catches up when the internet is back).</span>
+    <button class="primary mini" id="nudgeGo">Set up sync</button><button class="mini" id="nudgeOff">Not now</button></div>` : ''}
   <section class="card"><h2>All competitions <span class="muted">— where each one stands. Tap a sheet number to type it in.</span></h2>
     ${photosOn() ? `<div class="hint ovPhotos"><label class="btnlike primaryLike">📷 Upload sheet photos<input type="file" accept="image/*" multiple id="ovCam" hidden></label>
       <span>Pick one photo or a whole stack, in any order. Printed sheets <b>file themselves</b> from their code; for hand-written sheets you choose the competition and adjudicator. Or tap the 📷 under a sheet number to photograph that one.</span></div>` : ''}
@@ -1273,6 +1276,8 @@ function renderOverview(){
   main.querySelectorAll('[data-enter]').forEach(b => b.onclick = () => go(getComp(b.dataset.enter), -1));
   const toShow = () => { state.tab='show'; save(); render(); scrollTo(0,0); };
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = toShow);
+  const ng = document.getElementById('nudgeGo'); if (ng) ng.onclick = () => { state.esSub = 'sync'; save(); document.querySelector('[data-tab=settings]').click(); };
+  const no = document.getElementById('nudgeOff'); if (no) no.onclick = () => { state.syncNudgeOff = true; save(); render(); toast('Hidden on this device — sync is always in Event setup → Sync.'); };
   main.querySelectorAll('tr.ovRow').forEach(tr => tr.onclick = e => { if (e.target.closest('button, label, input, a')) return; go(getComp(tr.dataset.row), -1); });
   bindAnnounce();
   main.querySelectorAll('[data-details]').forEach(b => b.onclick = e => { e.stopPropagation(); openDetails(getComp(b.dataset.details)); });
@@ -2588,10 +2593,10 @@ function syncPaneHTML(){
       <input readonly value="${esc(joinLink())}" style="width:100%" onclick="this.select()"><p class="muted">Keep this code private: anyone with it can change scores. Scorers on joined devices still need the organizer PIN for Event setup.</p></div></div>`;
   return `<h3 class="fh">Sync <span class="muted">— keep 3–4 devices in step through a Google Sheet in the studio’s Google account</span></h3>
     <ol class="sySteps">
-      <li>In the studio’s Google Drive, create a new <b>Google Sheet</b> (e.g. “Southerns 2026 — live results”).</li>
+      <li>In Google Drive, create a new <b>Google Sheet</b> (e.g. “Southerns 2026 — live results”). Any Google account works — try it from your own to test, then set it up in the studio’s account for the event.</li>
       <li>In the Sheet: <b>Extensions → Apps Script</b>. Delete what’s there, paste the code below, and click 💾 Save. <button class="mini" id="syCopy">Copy the code</button>
         <textarea readonly class="syCode">${code}</textarea></li>
-      <li>Click <b>Deploy → New deployment</b> → type <b>Web app</b> → Execute as <b>Me</b> → Who has access <b>Anyone</b> → <b>Deploy</b>. Approve the Google permission prompts (it needs the Sheet and a Drive folder for sheet photos). Copy the <b>Web app URL</b>.</li>
+      <li>Click <b>Deploy → New deployment</b> → type <b>Web app</b> → Execute as <b>Me</b> → Who has access <b>Anyone</b> → <b>Deploy</b>. Approve the Google permission prompts (it needs the Sheet and a Drive folder for sheet photos). If Google says <i>“Google hasn’t verified this app”</i>, that’s normal for your own script: click <b>Advanced → Go to … (unsafe)</b> → <b>Allow</b>. Copy the <b>Web app URL</b>.</li>
       <li>Paste the URL here, choose an event key (any phrase — it acts as the password), and connect this device first. Then add the other devices with the join code it shows.</li></ol>
     <div class="row"><label style="flex:1;min-width:280px">Web app URL <input id="syUrl" value="${esc(c && c.url || '')}" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <label>Event key <input id="syKey" value="${esc(c && c.key || '')}" placeholder="e.g. southerns-${Math.random().toString(36).slice(2,7)}"></label></div>
