@@ -247,6 +247,7 @@
   .dropLine { height:4px; border-radius:2px; background:var(--pri); margin:-2px 0; }
   .schRow input.autoT { color:#6b6b7b; font-style:italic; } .schRow input.pinned { font-weight:700; border-color:var(--pri); } .schRow .tWrap { width:158px; display:inline-flex; gap:2px; align-items:center; }
   .schRow .nm2 small { display:block; font-weight:400; } .inl { flex-direction:row !important; align-items:center; gap:6px; } .lateP { background:#fdecea; color:var(--bad); }
+  button.verBtn { background:#e3f4ea; color:var(--ok2); border:1px solid #9fd3b4; font-weight:700; } button.verBtn small { font-weight:500; opacity:.8; } button.verBtn:hover { background:#d3eedd; }
   .syncNudge { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .syncNudge span { flex:1; min-width:260px; }
   details.timing { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:8px 0; background:#fcfbfd; } details.timing summary { cursor:pointer; font-weight:700; } .tmTbl { max-width:560px; }
   @media (max-width:760px){ .schC { grid-template-columns:60px 1fr; } .schC .st, .schC .schGo { grid-column:2; } }
@@ -1507,7 +1508,7 @@ function renderScores(){
   };
   loadPhoto();
   refreshScoreCalc();
-  const first = main.querySelector('input[data-sid]'); if (first && !R.on && matchMedia('(min-width: 761px)').matches) first.focus();
+  const first = main.querySelector('input[data-sid]'); if (first && !R.on && !isVerified(c, j) && matchMedia('(min-width: 761px)').matches) first.focus();
 }
 function refreshScoreCalc(){
   const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = live(c).length, R = rbFor(c, j);
@@ -1517,6 +1518,10 @@ function refreshScoreCalc(){
   const vs = document.getElementById('verState'), vv = c.verified?.[j];
   if (isVerified(c,j)) { vs.className='vstate ok'; vs.textContent = `Verified ✓${vv.by ? ' by '+vv.by : ''} at ${new Date(vv.at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`; }
   else { vs.className='vstate no'; vs.textContent = vv ? 'Changed since read-back — check again' : 'Not read back yet'; }
+  const rb = document.getElementById('rbStart');
+  if (rb) { const ok = isVerified(c,j); rb.className = ok ? 'verBtn' : 'primary';
+    rb.innerHTML = ok ? '✓ Verified <small>· read back again</small>' : vv ? '✔ Read back again (marks changed)' : '✔ Start read-back';
+    rb.title = ok ? 'Already read back and verified. Click only if you need to check this sheet again.' : ''; }
   document.querySelectorAll('#jtabs button').forEach(b => b.onclick = () => { state.judgeTab=+b.dataset.j; save(); renderScores(); });
   c.dancers.forEach(d => {
     const r = res[d.id] || {}, t = document.getElementById('t_'+d.id), k = document.getElementById('k_'+d.id), p = document.getElementById('p_'+d.id);
