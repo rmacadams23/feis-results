@@ -269,7 +269,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v3.1</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v3.2</span></div>
   <nav id="tabs">
     <button data-tab="overview">Overview</button>
     <button data-tab="show">Show on screen</button>
@@ -277,6 +277,7 @@
     <button data-tab="settings">Event setup</button>
   </nav>
   <div class="spacer"></div>
+  <button id="hdrLock" style="display:none" title="Lock Event setup again">🔒 Lock</button>
   <button id="hdrBackup" title="Download a backup of everything on this device">💾 Backup</button>
   <span id="dispStatus" class="status off">Display not open</span>
   <button id="openDisp" class="primary">Open display window</button>
@@ -363,11 +364,11 @@ function toast(msg){
   if (!t){ t = document.createElement('div'); t.id='toast'; document.body.appendChild(t); }
   t.textContent = msg; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(() => t.classList.remove('on'), 3500);
 }
-function dialog({ title, text='', input=false, value='', placeholder='', ok='OK', danger=false, cancel=true }){
+function dialog({ title, text='', input=false, value='', placeholder='', ok='OK', danger=false, cancel=true, password=false, extra='' }){
   return new Promise(res => {
     const ov = document.createElement('div'); ov.className='dlgOv';
     ov.innerHTML = `<div class="dlg" role="dialog" aria-modal="true"><h3>${esc(title)}</h3>${text?`<p>${esc(text)}</p>`:''}
-      ${input?`<input class="dlgIn" value="${esc(value)}" placeholder="${esc(placeholder)}">`:''}
+      ${input?`<input class="dlgIn" ${password ? 'type="password" inputmode="numeric" autocomplete="off"' : ''} value="${esc(value)}" placeholder="${esc(placeholder)}">`:''}${extra}
       <div class="dlgBtns">${cancel?'<button class="dlgNo">Cancel</button>':''}<button class="dlgOk ${danger?'dangerFill':'primary'}">${esc(ok)}</button></div></div>`;
     document.body.appendChild(ov);
     const inp = ov.querySelector('.dlgIn');
@@ -895,14 +896,40 @@ document.addEventListener('keydown', e => {
   if (window.feisKey(e.key)) e.preventDefault();
 });
 
+/* ---------------- Organizer PIN (a guardrail so scorers stay out of Event setup) ---------------- */
+let unlocked = false, pinFails = 0;
+async function hashPin(p){
+  const txt = 'feis-live:' + p;
+  try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join(''); }
+  catch (_) { let h = 5381; for (const ch of txt) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return 'h' + h.toString(16); }
+}
+const pinSet = () => !!state.settings.pinHash;
+async function requireUnlock(){
+  if (!pinSet() || unlocked) return true;
+  const v = await dialog({ title:'🔒 Organizer PIN', text:'Event setup and competition details are for organizers. Enter the PIN to continue.', input:true, password:true, placeholder:'PIN', ok:'Unlock',
+    extra: pinFails >= 2 ? `<p class="muted" style="margin:0 0 10px">Forgot the PIN? An organizer can reset it by typing the event name exactly (“${esc(state.settings.eventName)}”) instead.</p>` : '' });
+  if (v == null) return false;
+  if (await hashPin(v) === state.settings.pinHash) { unlocked = true; pinFails = 0; updateLockUI(); return true; }
+  if (pinFails >= 2 && v.trim().toLowerCase() === String(state.settings.eventName).trim().toLowerCase()) {
+    delete state.settings.pinHash; save(); unlocked = true; pinFails = 0; updateLockUI(); toast('PIN removed — set a new one in Event setup → Event.'); return true; }
+  pinFails++; toast('That PIN isn’t right.'); return false;
+}
+function lockNow(){ unlocked = false; if (['settings','setup','registration'].includes(state.tab)) state.tab = 'overview'; save(); render(); toast('Event setup locked.'); }
+function updateLockUI(){
+  const t = document.querySelector('#tabs [data-tab="settings"]'); if (t) t.innerHTML = `Event setup${pinSet() ? (unlocked ? ' 🔓' : ' 🔒') : ''}`;
+  const b = document.getElementById('hdrLock'); if (b) b.style.display = pinSet() && unlocked ? '' : 'none';
+}
+
 /* ---------------- Control UI ---------------- */
 const main = document.getElementById('main');
 const navOf = t => t === 'scores' ? 'overview' : t === 'registration' ? 'settings' : t === 'setup' ? navOf(state.prevTab || 'overview') : t;
 function renderHeader(){
+  updateLockUI();
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === navOf(state.tab)));
 }
 function render(){
   updateBackupBtn();
+  if (pinSet() && !unlocked && ['settings','setup','registration'].includes(state.tab)) state.tab = 'overview';
   if (state.tab === 'registration') { state.tab = 'settings'; state.esSub = 'entries'; }   // Entries now live under Event setup
   renderHeader();
   ({ overview:renderOverview, registration:renderRegistration, setup:renderSetup, scores:renderScores, show:renderShow, settings:renderSettings }[state.tab] || renderOverview)();
@@ -913,7 +940,7 @@ async function newCompByHand(){
   const c = newComp(name.trim()); c.judges = panel().slice(0,3);
   state.comps.push(c); openDetails(c);
 }
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state.tab=b.dataset.tab; save(); render(); scrollTo(0,0); });
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = async () => { if (b.dataset.tab === 'settings' && !(await requireUnlock())) return; state.tab=b.dataset.tab; save(); render(); scrollTo(0,0); });
 function downloadBackup(){
   download(`feis-results-backup-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`, JSON.stringify(state), 'application/json');
   state.lastBackup = Date.now(); save(); updateBackupBtn(); toast('Backup downloaded — keep it somewhere safe (e.g. a USB stick).');
@@ -923,6 +950,7 @@ function updateBackupBtn(){ const b = document.getElementById('hdrBackup'); if (
   b.title = t ? `Last backup ${mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : new Date(t).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}` : 'No backup downloaded yet';
   b.classList.toggle('stale', !t || mins > 60); }
 document.getElementById('hdrBackup').onclick = downloadBackup;
+document.getElementById('hdrLock').onclick = lockNow;
 setInterval(updateBackupBtn, 60000);
 document.getElementById('openDisp').onclick = () => (dispWin && !dispWin.closed) ? dispWin.focus() : openDisplay();
 
@@ -1065,7 +1093,7 @@ function renderOverview(){
     });
   }
 }
-function openDetails(c){ if (state.tab !== 'setup') state.prevTab = state.tab; state.editId = c.id; state.tab = 'setup'; save(); render(); scrollTo(0,0); }
+async function openDetails(c){ if (!(await requireUnlock())) return; if (state.tab !== 'setup') state.prevTab = state.tab; state.editId = c.id; state.tab = 'setup'; save(); render(); scrollTo(0,0); }
 function renderSetup(){
   const c = editComp();
   if (!c){ main.innerHTML = `<div class="card">No competitions yet — click “+ New competition”.</div>`; return; }
@@ -1446,6 +1474,10 @@ function renderSettings(){
       ${['L','R'].map(k => `<label>${k==='L'?'Left':'Right'} logo <div class="logoPrev">${s['logo'+k]?`<img src="${s['logo'+k]}">`:'none'}</div>
         <input type="file" accept="image/*" data-logo="${k}" style="max-width:200px"> ${s['logo'+k]?`<button data-rmlogo="${k}">Remove</button>`:''}</label>`).join('')}
     </div>
+    <h3 class="fh" style="margin-top:16px">Organizer PIN <span class="muted">— locks Event setup and competition details so scorers only use Overview and Show on screen</span></h3>
+    ${pinSet() ? `<div class="row" style="align-items:center"><span class="pill ok">PIN is on</span><button id="pinChange">Change PIN</button><button id="pinOff" class="danger">Turn off PIN</button><span class="muted">Use 🔒 Lock in the header when you step away.</span></div>`
+      : `<div class="row"><label>New PIN <input id="pin1" type="password" inputmode="numeric" autocomplete="off" style="width:120px"></label><label>Repeat it <input id="pin2" type="password" inputmode="numeric" autocomplete="off" style="width:120px"></label><button id="pinSet" class="primary">Turn on PIN</button></div>
+        <div class="muted">The PIN is saved on this device (and in backups). It’s a guardrail, not high security.</div>`}
   </section>
   <section data-pane="schedule"><h3 class="fh">Days</h3>
     <div class="row">${Object.entries(eventDates()).map(([k,v]) => `<label>${k === 'Sat' ? 'First day' : k === 'Sun' ? 'Second day' : k} <input type="date" data-date="${k}" value="${esc(v)}"></label>`).join('')}
@@ -1504,6 +1536,13 @@ function renderSettings(){
   $('evReset').onclick = async () => { if (!(await askConfirm('Reset the events list?', 'Your changes to events (and any events you added) are replaced by the standard list. Competitions already built are not changed.', 'Reset'))) return; state.settings.events = DEFAULT_EVENTS(); save(); renderSettings(); };
   main.querySelectorAll('[data-pj]').forEach(i => i.oninput = () => { panel()[+i.dataset.pj] = i.value; save(); });
   $('pjApply').onclick = () => { const pj = panel(); let n = 0; state.comps.forEach(c => { if (c.gen) { c.judges = c.judges.map((_, i) => pj[i] || `Adjudicator ${i+1}`); n++; } }); save(); pushDisplay(); toast(`Names updated on ${n} competitions.`); };
+  if ($('pinSet')) $('pinSet').onclick = async () => { const a = $('pin1').value.trim(), b = $('pin2').value.trim();
+    if (a.length < 4) return toast('Use at least 4 digits.'); if (a !== b) return toast('The two PINs don’t match.');
+    s.pinHash = await hashPin(a); unlocked = true; save(); renderSettings(); updateLockUI(); toast('PIN turned on. Event setup is unlocked until you press 🔒 Lock or reload.'); };
+  if ($('pinChange')) $('pinChange').onclick = async () => { const a = await dialog({ title:'New PIN', input:true, password:true, ok:'Next' }); if (!a) return; if (a.trim().length < 4) return toast('Use at least 4 digits.');
+    const b = await dialog({ title:'Repeat the new PIN', input:true, password:true, ok:'Save' }); if (b == null) return; if (a.trim() !== b.trim()) return toast('The two PINs don’t match.');
+    s.pinHash = await hashPin(a.trim()); save(); toast('PIN changed.'); };
+  if ($('pinOff')) $('pinOff').onclick = async () => { if (!(await askConfirm('Turn off the PIN?', 'Anyone using this device will be able to open Event setup.', 'Turn off'))) return; delete s.pinHash; save(); renderSettings(); updateLockUI(); };
   $('sEv').oninput = e => { s.eventName=e.target.value; save(); pushDisplay(); };
   $('sBg').oninput = e => { s.bg=e.target.value; save(); pushDisplay(); };
   $('sAcc').oninput = e => { s.acc=e.target.value; save(); pushDisplay(); };
