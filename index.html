@@ -201,6 +201,7 @@
   .gap { padding:2px 4px; min-width:16px; border:0; background:none; color:#b8c2cc; font-weight:800; } .gap:hover { color:var(--pri); } .gap.cut { color:var(--pri); font-size:16px; }
   .bands { display:flex; flex-wrap:wrap; gap:6px; } .band { background:#e3f4ea; color:var(--pri2); border-radius:12px; padding:2px 9px; font-size:12px; } .band.small { background:#fff1e0; color:#9a4a00; }
   .dayH { margin:14px 0 4px; font-size:15px; }
+  .styleTag { font-size:10px; font-weight:700; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:1px 5px; }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -243,7 +244,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.0</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.1</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -296,7 +297,8 @@ const fmt = n => n==null || n==='' ? '' : (Number.isInteger(n) ? String(n) : n.t
 const ord = n => { const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10]||s[v]||s[0]); };
 const num = v => { if (v==null) return NaN; const t=String(v).trim(); return t==='' ? NaN : Number(t); };
 
-function newView(){ return { screen:'title', gridStep:0, showTotals:false, resStep:0, order:'top', flash:0 }; }
+function newView(){ return { screen:'title', gridStep:0, showTotals:false, resStep:0, callStep:0, callOrder:null, order:'top', flash:0 }; }
+const isUS = c => c && c.scoring === 'us';   // US style: no score grid, no totals; call numbers to stage, then last → first
 function newComp(name){
   return { id:uid(), name, judges:['Adjudicator 1','Adjudicator 2','Adjudicator 3'], rounds:1, entry:'raw', places:-1, dancers:[], scores:{}, view:newView() };
 }
@@ -648,6 +650,10 @@ tr.newrow td{animation:slide .8s cubic-bezier(.2,.9,.3,1)}
 }
 .jw{display:none}
 @media (orientation:portrait){.aw{display:none}.jw{display:inline}}
+.callHd{font-size:3vh;color:var(--acc);text-transform:uppercase;letter-spacing:.2em;font-weight:600;text-align:center;margin-bottom:1vh}
+.call{display:flex;flex-wrap:wrap;justify-content:center;gap:1.2vh;margin-bottom:2.5vh;min-height:calc(var(--cs) * 1.3)}
+.chipN{font-size:var(--cs);font-weight:800;background:#fff;color:#13263d;border-radius:1.2vh;padding:.3vh 1.6vh;min-width:calc(var(--cs) * 2.2);text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 .6vh 1.6vh rgba(0,0,0,.25)}
+.chipN.new{animation:pop .7s cubic-bezier(.2,.9,.3,1.2)}
 #hint{position:fixed;bottom:10px;right:14px;color:#fff;opacity:.6;font:13px system-ui;transition:opacity 1s;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:12px}
 `;
 const SHELL = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Results Display</title><style>${DISPLAY_CSS}</style></head>
@@ -701,7 +707,31 @@ function gridHTML(c, anim){
   });
   return frame(header(c) + h + `</tbody></table>`);
 }
+function callOrderFor(c){
+  const ids = resultList(c).map(r => r.d.id), v = c.view;
+  if (!v.callOrder || v.callOrder.length !== ids.length || !ids.every(id => v.callOrder.includes(id))) v.callOrder = shuffle(ids);
+  return v.callOrder;
+}
+function usResultsHTML(c, anim){
+  const v=c.view, list=resultList(c), L=list.length;
+  if (!L) return frame(header(c) + `<div class="empty">Results not ready</div>`);
+  const byId = new Map(list.map(r => [r.d.id, r])), order = callOrderFor(c), cs = Math.min(v.callStep||0, L), k = Math.min(v.resStep, L);
+  const newestCall = anim && v.lastReveal==='call' ? cs-1 : -1, allCall = anim && v.lastReveal==='allcall';
+  const chipSz = Math.max(3.2, Math.min(7, 70 / Math.max(L, 1) * 1.9));
+  const strip = `<div class="callHd">${cs ? 'Please come to the stage' : '&nbsp;'}</div><div class="call" style="--cs:${chipSz}vh">${order.map((id,i) => i < cs ? `<span class="chipN ${(i===newestCall||allCall)?'new':''}">${esc(byId.get(id).d.no)}</span>` : '').join('')}</div>`;
+  const shown = i => i >= L-k, newest = anim && k>0 && v.lastReveal==='row' ? L-k : -1, allAnim = anim && v.lastReveal==='allrows';
+  let h = '';
+  if (k) {
+    h = `<table style="--rh:${rowH(L+2)}"><colgroup><col style="width:11%"><col style="width:14%"><col style="width:38%"><col></colgroup>
+      <thead><tr><th>Place</th><th>Dancer No</th><th>Competitor</th><th class="sch">Dance School</th></tr></thead><tbody>`;
+    list.forEach((r,i) => { const s = shown(i); const cls = !s ? 'hidrow' : `p${r.place} ${(i===newest||allAnim)?'newrow':''}`;
+      h += `<tr class="${cls}"><td class="place">${s?ord(r.place)+(r.tie?'=':''):''}</td><td class="no">${s?esc(r.d.no):''}</td><td class="left">${s?esc(r.d.name):''}</td><td class="left sch">${s?esc(r.d.school):''}</td></tr>`; });
+    h += `</tbody></table>`;
+  }
+  return frame(header(c) + strip + h);
+}
 function resultsHTML(c, anim){
+  if (isUS(c)) return usResultsHTML(c, anim);
   const v=c.view, list=resultList(c), L=list.length, k=Math.min(v.resStep, L);
   if (!L) return frame(header(c) + `<div class="empty">Results not ready</div>`);
   const shown = i => v.order==='bottom' ? i >= L-k : i < k;
@@ -720,7 +750,7 @@ function dispHTML(anim){
   const c = liveComp();
   if (!c) return titleHTML(null, 'Results will appear here');
   switch (c.view.screen){
-    case 'grid': return gridHTML(c, anim);
+    case 'grid': return isUS(c) ? titleHTML(c, 'Results') : gridHTML(c, anim);
     case 'results': return resultsHTML(c, anim);
     case 'blank': return titleHTML(null, 'Results will appear here shortly');
     default: return titleHTML(c, 'Results');
@@ -774,6 +804,13 @@ async function next(){
   const v0 = c0.view, D0 = live(c0).length, J0 = c0.judges.length;
   if (v0.screen==='grid' && v0.gridStep < D0*J0 && D0 && !(await okToReveal(c0, [Math.floor(v0.gridStep/D0)]))) return;
   if ((v0.screen==='results' || (v0.screen==='grid' && v0.gridStep>=D0*J0)) && !(await okToReveal(c0, c0.judges.map((_,j)=>j)))) return;
+  if (isUS(c0)) return act((c,v) => {
+    const L = resultList(c).length;
+    if (v.screen !== 'results'){ v.screen='results'; return; }
+    callOrderFor(c);
+    if ((v.callStep||0) < L){ v.callStep = (v.callStep||0) + 1; flash(c,'call'); }
+    else if (v.resStep < L){ v.resStep++; flash(c,'row'); }
+  });
   act((c,v) => {
     const D=live(c).length, J=c.judges.length, L=resultList(c).length;
     if (v.screen==='title' || v.screen==='blank'){ v.screen='grid'; return; }
@@ -790,6 +827,7 @@ function back(){
   act((c,v) => {
     if (v.screen==='grid'){ if (v.showTotals) v.showTotals=false; else if (v.gridStep>0) v.gridStep--; }
     else if (v.screen==='results' && v.resStep>0) v.resStep--;
+    else if (v.screen==='results' && isUS(c) && v.callStep>0) v.callStep--;
     v.lastReveal = null;
   });
 }
@@ -799,6 +837,7 @@ window.feisKey = function(key){
   if (key===' ' || key==='ArrowRight' || key==='PageDown' || key==='Enter'){ next(); return true; }
   if (key==='ArrowLeft' || key==='PageUp' || key==='Backspace'){ back(); return true; }
   const m = { t:'title', g:'grid', r:'results', h:'blank' }[key.toLowerCase()];
+  if (m === 'grid' && isUS(liveComp())) return true;
   if (m){ setScreen(m); return true; }
   return false;
 };
@@ -896,7 +935,7 @@ function renderOverview(){
           const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
           const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}</div></td>
-        <td><span class="st ${k}">${st}</span></td>
+        <td><span class="st ${k}">${st}</span> <span class="styleTag">${isUS(c) ? 'US' : 'Irish'}</span></td>
         <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
@@ -939,6 +978,7 @@ function renderSetup(){
       <label>Adjudicators <select id="cJ">${opt([1,2,3,4,5,6,7], c.judges.length)}</select></label>
       <label>Score sheets give <select id="cE">${opt(['raw','place'], c.entry, v => v==='raw'?'Raw marks':'Placings')}</select></label>
       <label>Rounds per sheet <select id="cR" ${c.entry==='place'?'disabled':''}>${opt([1,2,3], c.rounds)}</select></label>
+      <label>Results style <select id="cSc"><option value="irish" ${isUS(c)?'':'selected'}>Irish scoring</option><option value="us" ${isUS(c)?'selected':''}>US scoring</option></select></label>
       <label>Places to announce <span style="display:flex;gap:6px"><select id="cPm"><option value="all" ${c.places<0?'selected':''}>Everyone</option><option value="half" ${c.places===0?'selected':''}>Top half</option><option value="n" ${c.places>0?'selected':''}>Top…</option></select><input id="cP" type="number" min="1" style="width:70px;${c.places>0?'':'display:none'}" value="${c.places>0?c.places:''}"></span></label>
     </div>
     <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
@@ -965,6 +1005,7 @@ function renderSetup(){
   $('cJ').onchange = e => { const n=+e.target.value; while (c.judges.length<n) c.judges.push('Adjudicator '+(c.judges.length+1)); c.judges.length=n; resetView(c); save(); render(); };
   $('cE').onchange = e => { c.entry = e.target.value; save(); render(); pushDisplay(); };
   $('cR').onchange = e => { c.rounds = +e.target.value; save(); pushDisplay(); };
+  $('cSc').onchange = e => { c.scoring = e.target.value; save(); pushDisplay(); };
   $('cPm').onchange = e => { const v=e.target.value; c.places = v==='all' ? -1 : v==='half' ? 0 : Math.max(1, parseInt($('cP').value)||Math.ceil(live(c).length/2)); $('cP').style.display = v==='n' ? '' : 'none'; if (v==='n') $('cP').value = c.places; save(); pushDisplay(); };
   $('cP').oninput = e => { c.places = Math.max(1, parseInt(e.target.value)||1); save(); pushDisplay(); };
   main.querySelectorAll('[data-judge]').forEach(inp => inp.oninput = () => { c.judges[+inp.dataset.judge] = inp.value; save(); pushDisplay(); });
@@ -1181,6 +1222,7 @@ function renderShow(){
       <div class="muted" style="padding-bottom:6px">You can keep entering scores for other competitions while this one is on screen.</div></div>
     <div class="showgrid">
       <div>
+        <label class="muted" style="display:block;margin-bottom:8px">Results style <select id="scoreMode"><option value="irish">Irish scoring — score grid, then results with totals</option><option value="us">US scoring — call numbers to stage, then last → first, no scores</option></select></label>
         <div class="screens">
           <button data-screen="title">Title</button><button data-screen="grid">Score grid</button>
           <button data-screen="results">Results</button><button data-screen="blank">Holding screen</button>
@@ -1198,6 +1240,7 @@ function renderShow(){
   document.getElementById('liveSel').onchange = e => { state.liveId = e.target.value; save(); pushDisplay(); updateShowCtl(); };
   main.querySelectorAll('[data-screen]').forEach(b => b.onclick = () => setScreen(b.dataset.screen));
   document.getElementById('nextBtn').onclick = next;
+  document.getElementById('scoreMode').onchange = e => act((c,v) => { c.scoring = e.target.value === 'us' ? 'us' : 'irish'; if (isUS(c) && v.screen==='grid') v.screen='title'; v.lastReveal=null; });
   document.getElementById('backBtn').onclick = back;
   document.getElementById('presentBtn').onclick = startPresent;
   const pv = document.getElementById('pv');
@@ -1213,9 +1256,20 @@ window.addEventListener('resize', sizePreview);
 function updateShowCtl(){
   const c = liveComp(); if (!c || !document.getElementById('screenCtl')) return;
   const v = c.view, D=live(c).length, J=c.judges.length, L=resultList(c).length;
-  main.querySelectorAll('[data-screen]').forEach(b => b.classList.toggle('on', b.dataset.screen===v.screen));
+  main.querySelectorAll('[data-screen]').forEach(b => { b.classList.toggle('on', b.dataset.screen===v.screen); if (b.dataset.screen==='grid') b.style.display = isUS(c) ? 'none' : ''; });
+  const sm = document.getElementById('scoreMode'); if (sm) sm.value = isUS(c) ? 'us' : 'irish';
   const ctl = document.getElementById('screenCtl');
-  if (v.screen==='grid'){
+  if (isUS(c) && v.screen==='results'){
+    const cs = Math.min(v.callStep||0, L), k = Math.min(v.resStep, L);
+    ctl.innerHTML = `<div class="progress"><b>Called to stage:</b> ${cs} of ${L} · <b>Places shown:</b> ${k} of ${L} (last place first)</div>
+      <div class="btns"><button id="uCallAll">Call all to stage</button><button id="uShuffle">Shuffle call order</button><button id="uAll">Reveal all places</button><button id="uReset">Hide all</button></div>`;
+    document.getElementById('uCallAll').onclick = async () => { if (!(await okToReveal(c, c.judges.map((_,j)=>j)))) return; act((c,v) => { callOrderFor(c); v.callStep=L; flash(c,'allcall'); }); };
+    document.getElementById('uShuffle').onclick = () => act((c,v) => { v.callOrder = null; callOrderFor(c); v.lastReveal=null; });
+    document.getElementById('uAll').onclick = async () => { if (!(await okToReveal(c, c.judges.map((_,j)=>j)))) return; act((c,v) => { callOrderFor(c); v.callStep=L; v.resStep=L; flash(c,'allrows'); }); };
+    document.getElementById('uReset').onclick = () => act((c,v) => { v.callStep=0; v.resStep=0; v.lastReveal=null; });
+  } else if (isUS(c)) {
+    ctl.innerHTML = `<div class="progress"><b>US-style results.</b> Press <b>Next</b>: each press calls one placed dancer’s number to the stage (random order), then reveals the places from last to first. No scores are shown.</div>`;
+  } else if (v.screen==='grid'){
     const curJ = Math.min(J-1, Math.floor(v.gridStep/Math.max(D,1)));
     ctl.innerHTML = `<div class="progress"><b>Score grid:</b> ${v.gridStep} of ${D*J} scores shown${v.showTotals?' · totals shown':''}</div>
       <div class="btns"><button id="gJudge">Reveal rest of Adjudicator ${curJ+1}</button><button id="gAll">Reveal all scores</button>
@@ -1539,6 +1593,7 @@ function generateComps(reg){
       c.gen = { key: e.key, from: b.from, to: b.to, day: e.day, order: e.order, clashes: lu.clashes };
       c.judges = e.judges === 3 ? reg.judges.slice(0,3) : [reg.judges[0] || 'Adjudicator 1'];
       c.rounds = e.rounds.length; c.roundNames = e.rounds.slice(); c.places = -1;
+      c.scoring = e.key === 'oc' ? 'irish' : 'us';   // Open Championship is awarded on stage with the Irish score grid
       c.dancers = lu.order.map(d => ({ id: uid(), rid: d.id, no: String(d.no), name: d.name, school: schoolOf(reg, d) }));
       made.push(c);
     });
