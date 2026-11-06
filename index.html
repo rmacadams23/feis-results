@@ -1507,7 +1507,7 @@ function exportFeisSettings(){
       ['• Load it back in the app: Feis setup → ⬆ Load feis settings. You’ll see what will change before anything is saved.'],
       ['• Any sheet you delete is left as it is in the app.'], [''],
       ['Competitions offered'], ['• Keep the grey Key column — it’s how the app matches each row.'],
-      ['• To add a competition, add a row at the bottom with the Key empty and fill in “Matches registration text” (words that appear in the registration file).'],
+      ['• To add a competition, add a row at the bottom with the Key empty and fill in “Matches registration text” — a few words from how the registration form lists it. Example: “first feis” would catch “Tir Na Nog (First Feis) Reel & Light Jig”.'],
       ['• Placed: Everyone, Auto (top half for Irish, the US rule for US), or Top N (type any number, e.g. Top 7).'],
       ['• Stage: a stage name, or Spread to share its age groups across all stages. Needs: Full stage (championships) or Half (fine on half a split stage).'], [''],
       ['Not included: logos, the organizer PIN and the sync connection — they stay on the device.']].map(r => r) });
@@ -2726,7 +2726,7 @@ function addEventDialog(){
   ov.innerHTML = `<div class="dlg"><h3>Add an event</h3>
     <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
       <label>Event name <input id="aeName" placeholder="e.g. Open Champion Solos — Reel"></label>
-      <label>Registration text contains <input id="aeMatch" placeholder="e.g. open champion solo reel"><small class="muted">Entries whose text includes this go to this event.</small></label>
+      <label>Registration text contains <input id="aeMatch" placeholder="e.g. first feis"><small class="muted">Entries whose text includes this go to this event.</small></label>
       <label>Day <select id="aeDay">${Object.keys(eventDates()).map(d => `<option value="${d}">${dayLabel(d)}</option>`).join('')}</select></label>
       <label>Adjudicators <select id="aeJ"><option>1</option><option>3</option></select></label></div>
     <div class="dlgBtns"><button class="dlgNo">Cancel</button><button class="dlgOk primary">Add event</button></div></div>`;
