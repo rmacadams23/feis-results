@@ -138,6 +138,11 @@
   .legend .chip { min-width:26px; height:22px; font-size:11px; }
   .tbl.ov td { padding:8px 6px; vertical-align:middle; }
   .tbl.ov .btns { display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+  tr.dndRow td { color:#9aa4ae; background:#f6f7f9; }
+  tr.dndRow b { text-decoration:line-through; }
+  .pill.dnd { background:#eef1f4; color:#5b6875; margin-left:6px; }
+  button.mini { padding:3px 8px; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .dndLbl { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--muted); }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -166,7 +171,8 @@
     .tbl.dancers tr { display:grid; grid-template-columns:24px 84px 1fr 40px; gap:6px; padding:8px 0; border-bottom:1px solid #eef1f4; align-items:center; }
     .tbl.dancers td { border:0; padding:0; }
     .tbl.dancers td:nth-child(4) { grid-column:2 / 4; }
-    .tbl.dancers td:nth-child(5) { grid-row:1; grid-column:4; }
+    .tbl.dancers td:nth-child(5) { grid-column:4; }
+    .tbl.dancers td:nth-child(6) { grid-row:1; grid-column:4; }
     .tbl.dancers .w-s { max-width:none; }
     .nm { display:block; font-size:12px; color:var(--muted); font-weight:400; }
     .hide-m { display:none; }
@@ -179,7 +185,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.6</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.7</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -209,6 +215,7 @@ const DEFAULT_LOGO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAU
 const DEFAULT_BG = '#3a1f63', DEFAULT_ACC = '#efe9c8';
 const DEFAULT_POINTS = (() => { const a=[100,75,65,60,56,53,50,47,45,43,41,39,38,37,36,35,34,33,32,31]; for(let p=21;p<=50;p++) a.push(51-p); return a; })();
 
+const live = c => c.dancers.filter(d => !d.dnd);   // dancers who actually danced
 const uid = () => Math.random().toString(36).slice(2,10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const r2 = n => Math.round(n*100)/100;
@@ -233,7 +240,7 @@ function demoComps(){
 }
 function finishDemo(c){   // runs after all helpers exist
   if (c._verify){ c.verified = c.verified || {}; c._verify.forEach(j => c.verified[j] = { sig:sigOf(c,j), by:'MC', at:Date.now() - 20*60000 }); delete c._verify; }
-  if (c._announce){ const D=c.dancers.length, J=c.judges.length; Object.assign(c.view, { screen:'results', gridStep:D*J, showTotals:true, resStep:resultList(c).length, order:'top' }); delete c._announce; }
+  if (c._announce){ const D=live(c).length, J=c.judges.length; Object.assign(c.view, { screen:'results', gridStep:D*J, showTotals:true, resStep:resultList(c).length, order:'top' }); delete c._announce; }
 }
 function defaultState(){
   const ds = demoComps(), c = ds[1];
@@ -312,7 +319,7 @@ function entryText(c, j, d){
   const r = Array.from({length:c.rounds}, (_, i) => (e?.r?.[i] ?? '').toString().trim());
   return r.some(x => x === '') ? '' : r.join(' + ');
 }
-const sigOf = (c, j) => JSON.stringify([c.entry, c.rounds, c.dancers.map(d => [d.id, entryText(c, j, d)])]);
+const sigOf = (c, j) => JSON.stringify([c.entry, c.rounds, live(c).map(d => [d.id, entryText(c, j, d)])]);
 function isVerified(c, j){ const v = c.verified?.[j]; return !!v && v.sig === sigOf(c, j); }
 
 /* ---------------- Scoring ---------------- */
@@ -323,12 +330,12 @@ function judgeResults(c, j){
   const out = {}; const sc = c.scores[j] || {};
   if (c.entry === 'place') {
     const list = [];
-    c.dancers.forEach(d => { const p = num(sc[d.id]?.place); const ok = Number.isInteger(p) && p>0; out[d.id] = { total:null, rank: ok?p:null, pts:null, tie:false }; if(ok) list.push({id:d.id,p}); });
+    live(c).forEach(d => { const p = num(sc[d.id]?.place); const ok = Number.isInteger(p) && p>0; out[d.id] = { total:null, rank: ok?p:null, pts:null, tie:false }; if(ok) list.push({id:d.id,p}); });
     const counts = {}; list.forEach(x => counts[x.p] = (counts[x.p]||0)+1);
     list.forEach(x => { const k = counts[x.p]; out[x.id].pts = sharedPoints(x.p, k); out[x.id].tie = k>1; });
   } else {
     const list = [];
-    c.dancers.forEach(d => {
+    live(c).forEach(d => {
       const r = sc[d.id]?.r || []; let t=0, ok=true;
       for (let i=0;i<c.rounds;i++){ const v=num(r[i]); if(isNaN(v)){ ok=false; break; } t+=v; }
       out[d.id] = { total: ok ? r2(t) : null, rank:null, pts:null, tie:false };
@@ -345,10 +352,10 @@ function judgeResults(c, j){
   }
   return out;
 }
-function judgeComplete(c, j){ const r = judgeResults(c,j); return c.dancers.filter(d => r[d.id].pts!=null).length; }
+function judgeComplete(c, j){ const r = judgeResults(c,j); return live(c).filter(d => r[d.id].pts!=null).length; }
 function overall(c){
   const jr = c.judges.map((_,j) => judgeResults(c,j));
-  const rows = c.dancers.map(d => {
+  const rows = live(c).map(d => {
     let tot=0, complete=true;
     const pts = jr.map(r => { const p = r[d.id]?.pts; if (p==null) complete=false; else tot+=p; return p ?? null; });
     return { d, pts, total:r2(tot), complete, place:null, tie:false };
@@ -360,7 +367,7 @@ function overall(c){
   });
   return { jr, rows, ranked };
 }
-const placesN = c => c.places>0 ? c.places : Math.ceil(c.dancers.length/2);
+const placesN = c => c.places>0 ? c.places : Math.ceil(live(c).length/2);
 function resultList(c){ const N=placesN(c); return overall(c).ranked.filter(r => r.place<=N); }
 
 /* ---------------- Audience display ---------------- */
@@ -455,14 +462,14 @@ function titleHTML(c, sub){
     <div><div class="ev">${esc(s.eventName)}</div>${c ? `<h1>${esc(c.name)}</h1>` : ''}${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div></div>`);
 }
 function gridHTML(c, anim){
-  const v=c.view, D=c.dancers.length, J=c.judges.length;
+  const v=c.view, D=live(c).length, J=c.judges.length;
   if (!D) return frame(header(c) + `<div class="empty">No dancers entered yet</div>`);
   const jr = c.judges.map((_,j) => judgeResults(c,j));
   const newest = anim && v.gridStep>0 && v.lastReveal==='cell' ? v.gridStep-1 : -1;
   const totAnim = anim && v.lastReveal==='totals';
   let h = `<table class="grid" style="--rh:${rowH(D)}"><colgroup><col style="width:15%">${c.judges.map(()=>'<col>').join('')}<col style="width:17%"></colgroup>
     <thead><tr><th>Dancer No</th>${c.judges.map((n,j)=>`<th><span class="aw">Adjudicator</span><span class="jw">Judge</span> ${j+1}<small>${esc(n)}</small></th>`).join('')}<th>Grid Total</th></tr></thead><tbody>`;
-  c.dancers.forEach((d,i) => {
+  live(c).forEach((d,i) => {
     h += `<tr><td class="no">${esc(d.no)}</td>`;
     let tot=0, allShown=true, complete=true;
     for (let j=0;j<J;j++){
@@ -546,11 +553,11 @@ async function okToReveal(c, judges){
 }
 async function next(){
   const c0 = liveComp(); if (!c0) return;
-  const v0 = c0.view, D0 = c0.dancers.length, J0 = c0.judges.length;
+  const v0 = c0.view, D0 = live(c0).length, J0 = c0.judges.length;
   if (v0.screen==='grid' && v0.gridStep < D0*J0 && D0 && !(await okToReveal(c0, [Math.floor(v0.gridStep/D0)]))) return;
   if ((v0.screen==='results' || (v0.screen==='grid' && v0.gridStep>=D0*J0)) && !(await okToReveal(c0, c0.judges.map((_,j)=>j)))) return;
   act((c,v) => {
-    const D=c.dancers.length, J=c.judges.length, L=resultList(c).length;
+    const D=live(c).length, J=c.judges.length, L=resultList(c).length;
     if (v.screen==='title' || v.screen==='blank'){ v.screen='grid'; return; }
     if (v.screen==='grid'){
       if (v.gridStep < D*J){ v.gridStep++; flash(c,'cell'); }
@@ -624,7 +631,7 @@ document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state
 document.getElementById('openDisp').onclick = () => (dispWin && !dispWin.closed) ? dispWin.focus() : openDisplay();
 
 function compStatus(c){
-  const D=c.dancers.length, J=c.judges.length, v=c.view, L=resultList(c).length;
+  const D=live(c).length, J=c.judges.length, v=c.view, L=resultList(c).length;
   const ent=c.judges.map((_,j)=>judgeComplete(c,j)), full=ent.filter(n=>D && n===D).length;
   const vc=c.judges.filter((_,j)=>isVerified(c,j)).length;
   if (!D) return ['Setting up','grey'];
@@ -641,7 +648,7 @@ function renderOverview(){
   <section class="card"><h2>All competitions <span class="muted">— where each one stands. Tap a sheet chip to jump straight to that adjudicator.</span></h2>
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
     <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
-    ${state.comps.map(c => { const [st,k] = compStatus(c), D=c.dancers.length;
+    ${state.comps.map(c => { const [st,k] = compStatus(c), D=live(c).length;
       return `<tr><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <span class="pill onair">ON SCREEN</span>':''}<span class="nm">${D} dancers</span></td>
         <td class="num hide-m">${D}</td>
         <td><div class="chips">${c.judges.map((n,j)=>{ const e=judgeComplete(c,j), ver=isVerified(c,j);
@@ -670,14 +677,14 @@ function renderSetup(){
       <label>Adjudicators <select id="cJ">${opt([1,2,3,4,5,6,7], c.judges.length)}</select></label>
       <label>Score sheets give <select id="cE">${opt(['raw','place'], c.entry, v => v==='raw'?'Raw marks':'Placings')}</select></label>
       <label>Rounds per sheet <select id="cR" ${c.entry==='place'?'disabled':''}>${opt([1,2,3], c.rounds)}</select></label>
-      <label>Places to announce <input id="cP" type="number" min="0" style="width:150px" value="${c.places||''}" placeholder="auto: ${Math.ceil(c.dancers.length/2)} (top half)"></label>
+      <label>Places to announce <input id="cP" type="number" min="0" style="width:150px" value="${c.places||''}" placeholder="auto: ${Math.ceil(live(c).length/2)} (top half)"></label>
     </div>
     <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
     <div class="row"><button id="dupComp">Duplicate setup for next competition</button><button id="delComp" class="danger">Delete this competition</button></div>
   </section>
   <section class="card"><h2>Dancers <span class="muted">— ${c.dancers.length} entered, listed in the order they appear on the score grid</span></h2>
-    <table class="tbl dancers"><thead><tr><th style="width:40px">#</th><th style="width:110px">Dancer no.</th><th>Name</th><th>Dance school</th><th style="width:40px"></th></tr></thead><tbody>
-    ${c.dancers.map((d,i) => `<tr><td class="muted">${i+1}</td><td><input class="w-s" data-d="${d.id}" data-f="no" value="${esc(d.no)}"></td><td><input data-d="${d.id}" data-f="name" value="${esc(d.name)}"></td><td><input data-d="${d.id}" data-f="school" value="${esc(d.school)}"></td><td><button title="Remove" data-del="${d.id}">✕</button></td></tr>`).join('')}
+    <table class="tbl dancers"><thead><tr><th style="width:40px">#</th><th style="width:110px">Dancer no.</th><th>Name</th><th>Dance school</th><th style="width:110px">Didn’t dance</th><th style="width:40px"></th></tr></thead><tbody>
+    ${c.dancers.map((d,i) => `<tr class="${d.dnd?'dndRow':''}"><td class="muted">${i+1}</td><td><input class="w-s" data-d="${d.id}" data-f="no" value="${esc(d.no)}"></td><td><input data-d="${d.id}" data-f="name" value="${esc(d.name)}"></td><td><input data-d="${d.id}" data-f="school" value="${esc(d.school)}"></td><td><label class="dndLbl"><input type="checkbox" data-sdnd="${d.id}" ${d.dnd?'checked':''}> <span class="hide-m-inline">DND</span></label></td><td><button title="Remove" data-del="${d.id}">✕</button></td></tr>`).join('')}
     </tbody></table>
     <div class="row"><button id="addD">+ Add dancer</button><button id="sortD">Sort by dancer number</button></div>
     <details ${c.dancers.length?'':'open'}><summary><b>Paste a list from Excel</b> <span class="muted">— three columns: dancer no., name, school; one dancer per line</span></summary>
@@ -694,6 +701,7 @@ function renderSetup(){
   main.querySelectorAll('[data-judge]').forEach(inp => inp.oninput = () => { c.judges[+inp.dataset.judge] = inp.value; save(); pushDisplay(); });
   main.querySelectorAll('[data-d]').forEach(inp => inp.oninput = () => { const d=c.dancers.find(x=>x.id===inp.dataset.d); d[inp.dataset.f]=inp.value; save(); pushDisplay(); });
   main.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { const d=c.dancers.find(x=>x.id===b.dataset.del); if(!(await askConfirm(`Remove dancer ${d.no}?`, d.name||'', 'Remove'))) return; c.dancers=c.dancers.filter(x=>x.id!==d.id); save(); render(); pushDisplay(); });
+  main.querySelectorAll('[data-sdnd]').forEach(cb => cb.onchange = () => { const d=c.dancers.find(x=>x.id===cb.dataset.sdnd); d.dnd = cb.checked; cb.closest('tr').classList.toggle('dndRow', d.dnd); save(); pushDisplay(); });
   $('addD').onclick = () => { c.dancers.push({id:uid(),no:'',name:'',school:''}); save(); render(); const ins=main.querySelectorAll('[data-f="no"]'); ins[ins.length-1].focus(); };
   $('sortD').onclick = () => { c.dancers.sort((a,b) => (parseFloat(a.no)||0)-(parseFloat(b.no)||0) || String(a.no).localeCompare(b.no)); save(); render(); pushDisplay(); };
   $('pasteAdd').onclick = () => {
@@ -720,6 +728,24 @@ function renderSetup(){
 function resetView(c){ const f=c.view.flash||0; c.view = newView(); c.view.flash=f; }
 
 function ensureScore(c,j,id){ c.scores[j] = c.scores[j] || {}; return c.scores[j][id] = c.scores[j][id] || { r:[], place:'' }; }
+function addDancerDialog(c){
+  const ov = document.createElement('div'); ov.className='dlgOv';
+  ov.innerHTML = `<div class="dlg"><h3>Add a dancer to ${esc(c.name)}</h3>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
+      <label>Dancer no. <input id="adNo" inputmode="numeric"></label><label>Name <input id="adName"></label><label>Dance school <input id="adSch" list="adSchools"></label></div>
+    <datalist id="adSchools">${[...new Set(state.comps.flatMap(x=>x.dancers.map(d=>d.school)).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <div class="dlgBtns"><button class="dlgNo">Cancel</button><button class="dlgOk primary">Add dancer</button></div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('.dlgNo').onclick = close; ov.onclick = e => { if (e.target===ov) close(); };
+  const ok = () => { const no = ov.querySelector('#adNo').value.trim(); if (!no) { ov.querySelector('#adNo').focus(); return; }
+    if (c.dancers.some(d => String(d.no).trim()===no) && !ov.__dupOk) { ov.__dupOk = true; toast(`Dancer ${no} is already in this competition — press Add again to add anyway.`); return; }
+    c.dancers.push({ id:uid(), no, name:ov.querySelector('#adName').value.trim(), school:ov.querySelector('#adSch').value.trim(), late:true });
+    save(); close(); render(); pushDisplay(); toast(`Dancer ${no} added at the bottom of the list.`); };
+  ov.querySelector('.dlgOk').onclick = ok;
+  ov.addEventListener('keydown', e => { if (e.key==='Enter'){ e.preventDefault(); ok(); } if (e.key==='Escape') close(); });
+  setTimeout(() => { if (!ov.contains(document.activeElement)) ov.querySelector('#adNo').focus(); }, 30);
+}
 let rb = { key:null, on:false, ticks:new Set() };   // read-back state for the adjudicator on screen
 function rbFor(c, j){ const k = c.id+':'+j; if (rb.key !== k) rb = { key:k, on:false, ticks:new Set() }; return rb; }
 function renderScores(){
@@ -744,17 +770,18 @@ function renderScores(){
                : `<div class="muted" style="margin-bottom:6px"><kbd>Enter</kbd> moves to the next dancer.</div>`}
         <table class="tbl scores"><thead><tr>${R.on?'<th style="width:36px">✓</th>':''}<th style="width:90px">Dancer</th><th class="hide-m">Name</th>
           ${isPlace ? '<th class="num" style="width:100px">Placing</th>' : Array.from({length:rounds},(_,i)=>`<th class="num" style="width:100px">${rounds>1?'Round '+(i+1):'Raw mark'}</th>`).join('') + (rounds>1?'<th class="num">Total</th>':'')}
-          <th class="num">Place</th><th class="num">Irish pts</th></tr></thead><tbody>
-        ${c.dancers.map(d => { const s = sc[d.id] || {r:[],place:''};
-          return `<tr data-row="${d.id}">${R.on?`<td><input type="checkbox" class="tick" data-tick="${d.id}" ${R.ticks.has(d.id)?'checked':''}></td>`:''}<td><b>${esc(d.no)}</b><span class="nm">${esc(d.name)}</span></td><td class="hide-m">${esc(d.name)}</td>
-          ${isPlace ? `<td class="num"><input class="w-n" inputmode="numeric" data-sid="${d.id}" data-col="p" value="${esc(s.place)}"></td>`
-                   : Array.from({length:rounds},(_,i)=>`<td class="num"><input class="w-n" inputmode="decimal" data-sid="${d.id}" data-col="${i}" value="${esc(s.r?.[i] ?? '')}"></td>`).join('') + (rounds>1?`<td class="num" id="t_${d.id}"></td>`:'')}
-          <td class="num" id="k_${d.id}"></td><td class="num" id="p_${d.id}"></td></tr>`; }).join('')}
+          <th class="num">Place</th><th class="num">Irish pts</th><th></th></tr></thead><tbody>
+        ${c.dancers.map(d => { const s = sc[d.id] || {r:[],place:''}, dnd = !!d.dnd, dis = dnd ? 'disabled' : '';
+          return `<tr data-row="${d.id}" class="${dnd?'dndRow':''}">${R.on?`<td>${dnd?'':`<input type="checkbox" class="tick" data-tick="${d.id}" ${R.ticks.has(d.id)?'checked':''}>`}</td>`:''}<td><b>${esc(d.no)}</b><span class="nm">${esc(d.name)}</span>${dnd?'<span class="pill dnd">did not dance</span>':''}</td><td class="hide-m">${esc(d.name)}</td>
+          ${isPlace ? `<td class="num"><input class="w-n" inputmode="numeric" data-sid="${d.id}" data-col="p" value="${esc(s.place)}" ${dis}></td>`
+                   : Array.from({length:rounds},(_,i)=>`<td class="num"><input class="w-n" inputmode="decimal" data-sid="${d.id}" data-col="${i}" value="${esc(s.r?.[i] ?? '')}" ${dis}></td>`).join('') + (rounds>1?`<td class="num" id="t_${d.id}"></td>`:'')}
+          <td class="num" id="k_${d.id}"></td><td class="num" id="p_${d.id}"></td>
+          <td class="num"><button class="mini" data-dnd="${d.id}" title="${dnd?'Put back in':'Mark as did not dance'}">${dnd?'↺ Danced':'Didn’t dance'}</button></td></tr>`; }).join('')}
         </tbody></table>
         ${R.on ? `<div class="rbFoot"><input id="rbBy" placeholder="Checked by (initials)" style="width:170px" value="${esc(state.lastChecker||'')}">
             <span class="progress" id="rbCount"></span><div class="spacer"></div>
             <button id="rbCancel">Stop read-back</button><button id="rbOk" class="primary" disabled>All match — mark verified</button></div>`
-               : `<div class="rbFoot"><div class="spacer"></div><button id="rbStart" class="primary" ${c.dancers.length?'':'disabled'}>✔ Start read-back</button></div>`}
+               : `<div class="rbFoot"><button id="addLate">+ Add dancer</button><div class="spacer"></div><button id="rbStart" class="primary" ${c.dancers.length?'':'disabled'}>✔ Start read-back</button></div>`}
       </div>
     </div>
   </section>
@@ -777,6 +804,12 @@ function renderScores(){
   });
   main.querySelectorAll('[data-tick]').forEach(cb => cb.onchange = () => { cb.checked ? R.ticks.add(cb.dataset.tick) : R.ticks.delete(cb.dataset.tick); refreshScoreCalc(); });
   const $ = id => document.getElementById(id);
+  main.querySelectorAll('[data-dnd]').forEach(b => b.onclick = async () => {
+    const d = c.dancers.find(x => x.id===b.dataset.dnd);
+    if (!d.dnd && !(await dialog({ title:`Dancer ${d.no} did not dance?`, text:`${d.name||''} will be left out of scoring, the grid and the results. You can put them back any time.`, ok:'Mark did not dance' }))) return;
+    d.dnd = !d.dnd; R.ticks.delete(d.id); save(); renderScores(); pushDisplay(); toast(d.dnd ? `${d.no} marked did not dance.` : `${d.no} put back in.`);
+  });
+  if ($('addLate')) $('addLate').onclick = () => addDancerDialog(c);
   if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
   if ($('rbCancel')) $('rbCancel').onclick = () => { R.on = false; renderScores(); };
   if ($('rbOk')) $('rbOk').onclick = () => {
@@ -789,7 +822,7 @@ function renderScores(){
   const first = main.querySelector('input[data-sid]'); if (first && !R.on && matchMedia('(min-width: 761px)').matches) first.focus();
 }
 function refreshScoreCalc(){
-  const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = c.dancers.length, R = rbFor(c, j);
+  const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = live(c).length, R = rbFor(c, j);
   document.getElementById('jtabs').innerHTML = c.judges.map((n,i) => { const done = judgeComplete(c,i);
     const ver = isVerified(c,i);
     return `<button data-j="${i}" class="${i===j?'on':''}">Adjudicator ${i+1}: ${esc(n)}<small>${done}/${D} entered · <span class="${ver?'vok':'vno'}">${ver?'verified ✓':'not verified'}</span></small></button>`; }).join('');
@@ -798,7 +831,7 @@ function refreshScoreCalc(){
   else { vs.className='vstate no'; vs.textContent = vv ? 'Changed since read-back — check again' : 'Not read back yet'; }
   document.querySelectorAll('#jtabs button').forEach(b => b.onclick = () => { state.judgeTab=+b.dataset.j; save(); renderScores(); });
   c.dancers.forEach(d => {
-    const r = res[d.id], t = document.getElementById('t_'+d.id), k = document.getElementById('k_'+d.id), p = document.getElementById('p_'+d.id);
+    const r = res[d.id] || {}, t = document.getElementById('t_'+d.id), k = document.getElementById('k_'+d.id), p = document.getElementById('p_'+d.id);
     if (t) t.textContent = r.total==null ? '' : fmt(r.total);
     if (k) k.innerHTML = r.rank==null ? '' : ord(r.rank) + (r.tie ? ' <span class="pill tie">tie</span>' : '');
     if (p) p.innerHTML = r.pts==null ? '' : `<b>${fmt(r.pts)}</b>`;
@@ -806,7 +839,7 @@ function refreshScoreCalc(){
   });
   main.querySelectorAll('input[data-sid]').forEach(inp => { const v=inp.value.trim(); inp.classList.toggle('bad', v!=='' && (isNaN(Number(v)) || (inp.dataset.col==='p' && !(Number.isInteger(Number(v)) && Number(v)>0)))); });
   if (R.on) {
-    const missing = c.dancers.filter(d => !entryText(c, j, d)).length, n = c.dancers.filter(d => R.ticks.has(d.id)).length;
+    const missing = live(c).filter(d => !entryText(c, j, d)).length, n = live(c).filter(d => R.ticks.has(d.id)).length;
     document.getElementById('rbCount').innerHTML = `${n} of ${D} checked` + (missing ? ` · <span class="bad-t">${missing} missing</span>` : '');
     document.getElementById('rbOk').disabled = !(D && n === D && !missing);
   }
@@ -840,6 +873,7 @@ function summaryHTML(c){
   ${rows.map(r => `<tr style="${r.place && r.place<=N ? '' : 'color:#8a96a3'}"><td class="num"><b>${r.place ? ord(r.place)+(r.tie?'=':'') : ''}</b></td><td>${esc(r.d.no)}</td><td>${esc(r.d.name)}</td><td class="hide-m">${esc(r.d.school)}</td>
     ${r.pts.map(p => `<td class="num">${p==null?'<span class="bad-t">—</span>':fmt(p)}</td>`).join('')}<td class="num"><b>${r.complete?fmt(r.total):''}</b></td></tr>`).join('')}
   </tbody></table></div>
+  ${c.dancers.some(d=>d.dnd) ? `<div class="muted" style="margin-bottom:4px">Did not dance: ${c.dancers.filter(d=>d.dnd).map(d=>esc(d.no)).join(', ')}</div>` : ''}
   <div class="muted">Top ${N} will be announced (grey rows are not placed).${ties.length ? ` <span class="warn"><b>Tie on grid total</b> for ${ties.map(r=>r.d.no).join(', ')} — shown as a shared place. Apply your tie-break rule if needed.</span>` : ''}</div>`;
 }
 
@@ -881,7 +915,7 @@ function sizePreview(){
 window.addEventListener('resize', sizePreview);
 function updateShowCtl(){
   const c = liveComp(); if (!c || !document.getElementById('screenCtl')) return;
-  const v = c.view, D=c.dancers.length, J=c.judges.length, L=resultList(c).length;
+  const v = c.view, D=live(c).length, J=c.judges.length, L=resultList(c).length;
   main.querySelectorAll('[data-screen]').forEach(b => b.classList.toggle('on', b.dataset.screen===v.screen));
   const ctl = document.getElementById('screenCtl');
   if (v.screen==='grid'){
