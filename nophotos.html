@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#3a1f63">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Feis Results">
+  <title>Feis Live Results — Tabulation</title>
+<style>
+  :root { --ink:#1d2733; --muted:#6b7785; --line:#dde3ea; --bg:#f4f6f9; --pri:#146c43; --pri2:#0f5132; --warn:#b54708; --bad:#b42318; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Calibri,system-ui,sans-serif; color:var(--ink); background:var(--bg); font-size:14px; }
+  header.bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:10px 16px; background:#fff; border-bottom:1px solid var(--line); }
+  .brand { font-weight:700; font-size:17px; color:var(--pri2); margin-right:8px; }
+  nav#tabs { display:flex; gap:4px; margin-left:8px; }
+  nav#tabs button { border:1px solid transparent; background:none; padding:7px 12px; border-radius:6px; font-weight:600; color:var(--muted); }
+  .tabSep { width:1px; background:var(--line); margin:4px 6px; flex:none; }
+  nav#tabs button.on { background:#e8f3ee; color:var(--pri2); border-color:#cfe5da; }
+  .spacer { flex:1; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 12px; }
+  button:hover { border-color:#b8c2cc; }
+  button.primary { background:var(--pri); color:#fff; border-color:var(--pri); }
+  button.primary:hover { background:var(--pri2); }
+  button.danger { color:var(--bad); border-color:#f1c4bf; }
+  button.on { background:var(--pri); color:#fff; border-color:var(--pri); }
+  input, select, textarea { font:inherit; border:1px solid #c9d1da; border-radius:5px; padding:5px 7px; background:#fff; }
+  input:focus, select:focus, textarea:focus { outline:2px solid #9fd3b9; border-color:var(--pri); }
+  input.bad { border-color:var(--bad); background:#fff3f2; }
+  main { padding:16px; max-width:1400px; margin:0 auto; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 12px; font-size:16px; }
+  .muted { color:var(--muted); font-weight:400; font-size:13px; }
+  .row { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; margin-bottom:12px; }
+  .row label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); font-weight:600; }
+  .tbl { border-collapse:collapse; width:100%; margin:6px 0 10px; }
+  .tbl th { text-align:left; font-size:12px; color:var(--muted); padding:6px 6px; border-bottom:1px solid var(--line); background:#fafbfc; }
+  .tbl td { padding:3px 6px; border-bottom:1px solid #eef1f4; }
+  .tbl td.num, .tbl th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tbl input { width:100%; }
+  .w-s { max-width:90px; }
+  .w-n { max-width:90px; text-align:right; }
+  .judgeTabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .judgeTabs button small { display:block; font-size:11px; opacity:.8; }
+  .pill { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; }
+  .pill.ok { background:#e3f4ea; color:var(--pri2); }
+  .pill.tie { background:#fff4e5; color:var(--warn); }
+  .warn { color:var(--warn); }
+  .bad-t { color:var(--bad); }
+  .hint { background:#f0f7ff; border:1px solid #cfe2fb; border-radius:8px; padding:10px 12px; color:#244b78; font-size:13px; margin-bottom:12px; }
+  .showgrid { display:grid; grid-template-columns: 360px 1fr; gap:20px; align-items:start; }
+  .screens { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
+  .screens button { padding:10px; font-weight:600; }
+  button.big { width:100%; padding:16px; font-size:18px; font-weight:700; margin-bottom:8px; }
+  button.big small { display:block; font-size:12px; font-weight:400; opacity:.85; }
+  .ctl { border-top:1px solid var(--line); margin-top:12px; padding-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .ctl .btns { display:flex; flex-wrap:wrap; gap:6px; }
+  .ctl.keys { display:block; }
+  .ctl .pill { align-self:flex-start; }
+  header.bar { row-gap:6px; }
+  .progress { font-size:13px; color:var(--muted); }
+  #pvBox { position:relative; width:100%; background:#000; border-radius:8px; overflow:hidden; }
+  #pv { border:0; width:1280px; height:720px; transform-origin:0 0; position:absolute; left:0; top:0; }
+  .pvlabel { font-size:12px; color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .status { font-size:12px; padding:3px 8px; border-radius:10px; }
+  .status.on { background:#e3f4ea; color:var(--pri2); }
+  .status.off { background:#fdecea; color:var(--bad); }
+  .keys { font-size:12px; color:var(--muted); line-height:1.6; }
+  kbd { background:#f1f3f5; border:1px solid #d5dbe1; border-bottom-width:2px; border-radius:4px; padding:0 5px; font-size:11px; }
+  .logoPrev { width:90px; height:90px; border:1px dashed #c9d1da; border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#fafbfc; color:var(--muted); font-size:11px; }
+  .logoPrev img { max-width:100%; max-height:100%; }
+  @media (max-width: 1000px) { .showgrid { grid-template-columns:1fr; } }
+  .dlgOv { position:fixed; inset:0; background:rgba(20,28,38,.45); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .dlg { background:#fff; border-radius:12px; padding:18px 20px; width:min(440px,100%); box-shadow:0 20px 50px rgba(0,0,0,.3); }
+  .dlg h3 { margin:0 0 8px; font-size:17px; }
+  .dlg p { margin:0 0 12px; color:var(--muted); }
+  .dlg .dlgIn { width:100%; margin-bottom:12px; font-size:16px; }
+  .dlgBtns { display:flex; justify-content:flex-end; gap:8px; }
+  button.dangerFill { background:var(--bad); color:#fff; border-color:var(--bad); }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:#1d2733; color:#fff; padding:10px 16px; border-radius:10px; z-index:120; opacity:0; pointer-events:none; transition:all .25s; max-width:90%; text-align:center; }
+  #toast.on { opacity:1; transform:translate(-50%,0); }
+  .sheetBar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:4px 0 12px; padding:10px; background:#fafbfc; border:1px solid var(--line); border-radius:8px; }
+  .photoSlot { width:64px; height:64px; border-radius:6px; border:1px dashed #c9d1da; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted); overflow:hidden; background:#fff; text-align:center; cursor:pointer; flex:none; }
+  .photoSlot img { width:100%; height:100%; object-fit:cover; }
+  label.btnlike { cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 12px; font-size:14px; color:var(--ink); font-weight:400; }
+  .vstate { font-size:13px; font-weight:600; }
+  .vstate.ok { color:var(--pri2); } .vstate.no { color:var(--warn); }
+  .judgeTabs .vok { color:#9fe0bd; } .judgeTabs button:not(.on) .vok { color:var(--pri); }
+  .judgeTabs .vno { color:#ffd8a8; } .judgeTabs button:not(.on) .vno { color:var(--warn); }
+  .full { position:fixed; inset:0; z-index:60; background:#fff; display:flex; flex-direction:column; }
+  .full > header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .full > header h3 { margin:0; font-size:16px; flex:1; }
+  .full > footer { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:12px 16px; border-top:1px solid var(--line); background:#fafbfc; }
+  .rbBody { flex:1; overflow:auto; display:grid; grid-template-columns: minmax(0,1fr) minmax(280px,420px); gap:16px; padding:16px; }
+  .rbBody.nophoto { grid-template-columns: minmax(0,520px); justify-content:center; }
+  .rbPhoto { overflow:auto; border:1px solid var(--line); border-radius:8px; background:#f1f3f5; min-height:200px; }
+  .rbPhoto img { width:100%; display:block; }
+  .rbHelp { color:var(--muted); font-size:13px; margin-bottom:8px; }
+  .rbRow { display:grid; grid-template-columns:28px 70px 1fr auto; align-items:center; gap:8px; padding:10px 8px; border-bottom:1px solid #eef1f4; cursor:pointer; border-radius:6px; }
+  .rbRow input { width:22px; height:22px; margin:0; }
+  .rbRow .no { font-weight:700; font-size:18px; }
+  .rbRow .val { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .rbRow.done { background:#eef8f2; } .rbRow.done .val { color:var(--pri2); }
+  .rbRow .missing { color:var(--bad); }
+  .imgView { flex:1; overflow:auto; background:#111; }
+  .imgView img { max-width:none; width:100%; display:block; }
+  @media (max-width:760px){ .rbBody { grid-template-columns:1fr; } .rbPhoto { max-height:38vh; } }
+  .entryGrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:20px; align-items:start; }
+  .sheetPane { position:sticky; top:76px; }
+  .sheetImg { max-height:calc(100vh - 150px); overflow:auto; border:1px solid var(--line); border-radius:8px; background:#f1f3f5; }
+  .sheetImg img { width:100%; display:block; }
+  .sheetEmpty { display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; border:2px dashed #c9d1da; border-radius:10px; padding:30px 18px; cursor:pointer; background:#fafbfc; }
+  .sheetEmpty:hover { border-color:var(--pri); }
+  .primaryLike { background:var(--pri); color:#fff; border-color:var(--pri); margin-top:6px; }
+  .stepHead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .step { width:22px; height:22px; border-radius:50%; background:var(--pri); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .rbFoot { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
+  .entryGrid.noPhotos { grid-template-columns:minmax(0,900px); }
+  .entryPane.rbOn { background:#fbfdfc; }
+  tr.ticked td { background:#eaf7ef; }
+  .tick { width:20px; height:20px; }
+  @media (max-width:1000px){ .entryGrid { grid-template-columns:1fr; } .sheetPane { position:static; } .sheetImg { max-height:45vh; } }
+  @media (max-width:760px){ header.bar { position:static; } .sheetPane { position:sticky; top:0; z-index:4; background:#fff; padding-bottom:6px; } .sheetImg { max-height:30vh; } .sheetEmpty { padding:18px 12px; } }
+  .ovCounts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .st { display:inline-block; padding:3px 9px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .st.grey { background:#eef1f4; color:#5b6875; } .st.work { background:#e7f0fb; color:#1f4f8a; } .st.warn { background:#fff1e0; color:#9a4a00; }
+  .st.ready { background:#e3f4ea; color:var(--pri2); } .st.done { background:#ede7f6; color:#4a2a7a; }
+  .pill.onair { background:#b42318; color:#fff; font-size:10px; letter-spacing:.05em; }
+  .chips { display:flex; gap:5px; }
+  .chip { min-width:38px; height:30px; padding:0 7px; border-radius:15px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:2px; border:1px solid #d5dbe1; background:#fff; color:#8a96a3; }
+  .chip.part { background:#e7f0fb; border-color:#bcd3f0; color:#1f4f8a; }
+  .chip.ent { background:#fff1e0; border-color:#f3cf9f; color:#9a4a00; }
+  .chip.ver { background:var(--pri); border-color:var(--pri); color:#fff; }
+  .chip .ph { font-size:11px; }
+  .legend { margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:12px; }
+  .legend .chip { min-width:26px; height:22px; font-size:11px; }
+  .tbl.ov td { padding:8px 6px; vertical-align:middle; }
+  .tbl.ov .btns { display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+  .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .nm { display:none; }
+  #pv { pointer-events:none; }
+  #presentOv { position:fixed; inset:0; z-index:50; background:#000; display:none; }
+  #presentOv.on { display:block; }
+  #presentOv iframe { border:0; width:100%; height:100%; display:block; }
+  #presentOv .x { position:absolute; top:10px; right:10px; z-index:2; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:20px; padding:6px 14px; font-size:14px; }
+  #povInfo { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); color:#fff; font-size:14px; background:rgba(0,0,0,.6); padding:6px 14px; border-radius:14px; pointer-events:none; transition:opacity 1s; text-align:center; max-width:90%; }
+  button.present { width:100%; padding:12px; font-weight:600; margin-top:8px; }
+  @media (max-width: 760px) {
+    body { font-size:15px; }
+    input, select, textarea { font-size:16px; }
+    header.bar { padding:8px 10px; gap:8px; }
+    .brand { font-size:15px; }
+    header.bar > label.muted { order:4; flex:1 1 100%; display:flex; align-items:center; gap:8px; min-width:0; }
+    #editSel { width:100%; max-width:100%; }
+    nav#tabs { order:5; width:100%; overflow-x:auto; margin-left:0; flex-wrap:nowrap; }
+    nav#tabs button { white-space:nowrap; padding:8px 10px; }
+    .spacer, #dispStatus, #openDisp { display:none; }
+    main { padding:10px; }
+    .card { padding:12px; border-radius:8px; }
+    .row { gap:10px; }
+    .row label { flex:1 1 140px; }
+    .row label input, .row label select { width:100%; }
+    .tbl.dancers thead { display:none; }
+    .tbl.dancers tr { display:grid; grid-template-columns:24px 84px 1fr 40px; gap:6px; padding:8px 0; border-bottom:1px solid #eef1f4; align-items:center; }
+    .tbl.dancers td { border:0; padding:0; }
+    .tbl.dancers td:nth-child(4) { grid-column:2 / 4; }
+    .tbl.dancers td:nth-child(5) { grid-row:1; grid-column:4; }
+    .tbl.dancers .w-s { max-width:none; }
+    .nm { display:block; font-size:12px; color:var(--muted); font-weight:400; }
+    .hide-m { display:none; }
+    .judgeTabs button { flex:1 1 30%; padding:8px 6px; }
+    .showgrid > div:first-child { order:2; }
+    #nextBtn { position:sticky; bottom:10px; z-index:3; box-shadow:0 6px 18px rgba(0,0,0,.25); }
+    .ctl.keys { display:none; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.6</span></div>
+  <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
+  <button id="newComp">+ New competition</button>
+  <nav id="tabs">
+    <button data-tab="overview">Overview</button>
+    <button data-tab="scores">Enter scores</button>
+    <button data-tab="show">Show on screen</button>
+    <span class="tabSep"></span>
+    <button data-tab="setup">Setup</button>
+    <button data-tab="settings">Settings &amp; backup</button>
+  </nav>
+  <div class="spacer"></div>
+  <span id="dispStatus" class="status off">Display not open</span>
+  <button id="openDisp" class="primary">Open display window</button>
+</header>
+<main id="main"></main>
+<div id="presentOv"><iframe id="pov" title="Presentation"></iframe><button class="x" id="povX">✕ Exit</button><div id="povInfo"></div></div>
+
+<script>
+/* ============================================================
+   Feis Live Results — runs fully offline in one file.
+   Data is saved in this browser (localStorage) on every change.
+   ============================================================ */
+const NO_PHOTOS = true;   // the no-photo edition sets this to true
+const KEY = 'feisLive.v1';
+const photosOn = () => !NO_PHOTOS && state.settings.photos !== false;
+const DEFAULT_LOGO = 'data:image/jpeg;base64,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';
+const DEFAULT_BG = '#3a1f63', DEFAULT_ACC = '#efe9c8';
+const DEFAULT_POINTS = (() => { const a=[100,75,65,60,56,53,50,47,45,43,41,39,38,37,36,35,34,33,32,31]; for(let p=21;p<=50;p++) a.push(51-p); return a; })();
+
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const r2 = n => Math.round(n*100)/100;
+const fmt = n => n==null || n==='' ? '' : (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/,''));
+const ord = n => { const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10]||s[v]||s[0]); };
+const num = v => { if (v==null) return NaN; const t=String(v).trim(); return t==='' ? NaN : Number(t); };
+
+function newView(){ return { screen:'title', gridStep:0, showTotals:false, resStep:0, order:'top', flash:0 }; }
+function newComp(name){
+  return { id:uid(), name, judges:['Adjudicator 1','Adjudicator 2','Adjudicator 3'], rounds:1, entry:'raw', places:0, dancers:[], scores:{}, view:newView() };
+}
+const DEMO = [{"key":"u9","title":"Under 9 Championship","dancers":[["44","Sinead Tierney","Brigid Academy"],["77","Isla Healy","Brigid Academy"],["79","Sinead Kelly","Celtic Heritage Dance"],["85","Tara Doyle","Shamrock Academy"],["91","Lucy Tierney","Emerald Isle Dancers"],["99","Niamh Flynn","Celtic Heritage Dance"]],"marks":[[84,89,71,77,80,88],[79,70,90,83,78,86],[70,73,82,91,71,92]],"entered":[0,1,2],"verified":[0,1,2],"announced":true},{"key":"u10","title":"Under 10 Championship","dancers":[["101","Aoife Murphy","Shamrock Academy"],["114","Ciara Walsh","Claddagh School of Irish Dance"],["122","Niamh Byrne","Shamrock Academy"],["135","Saoirse Kelly","Tara Rose Academy"],["140","Maeve Doyle","Claddagh School of Irish Dance"],["152","Orla Brennan","Tara Rose Academy"],["167","Grace Nolan","Celtic Heritage Dance"]],"marks":[[88,79,84,91,76,82,73],[86,83,80,89,78,84,75],[90,77,85,87,80,85,74]],"entered":[0,1,2],"verified":[]},{"key":"u11","title":"Under 11 Championship","dancers":[["209","Erin Murphy","Celtic Heritage Dance"],["211","Siobhan Doyle","Claddagh School of Irish Dance"],["225","Grace Murphy","Shamrock Academy"],["234","Ailbhe Tierney","Celtic Heritage Dance"],["239","Sinead Keane","Brigid Academy"],["243","Caoimhe Lynch","Brigid Academy"],["253","Caoimhe Power","Claddagh School of Irish Dance"],["272","Sorcha Healy","Celtic Heritage Dance"]],"marks":[[82,70,88,75,89,71,84,80],[82,72,89,88,74,75,79,76],[82,72,82,86,92,83,79,85]],"entered":[0,1],"verified":[0]},{"key":"u12","title":"Under 12 Championship","dancers":[["302","Saoirse Walsh","Claddagh School of Irish Dance"],["308","Keira Carroll","Brigid Academy"],["326","Ruby Doyle","Shamrock Academy"],["327","Ava Doyle","Celtic Heritage Dance"],["331","Erin Keane","Emerald Isle Dancers"],["334","Kate Daly","Claddagh School of Irish Dance"],["335","Shannon Walsh","Shamrock Academy"],["352","Isla Kenny","Tara Rose Academy"],["357","Tara Walsh","Shamrock Academy"]],"marks":[[89,72,80,84,71,91,70,82,83],[92,84,86,79,85,73,91,70,75],[84,80,91,90,76,88,74,81,78]],"entered":[],"verified":[]},{"key":"u13","title":"Under 13 Championship","dancers":[["427","Hannah Keane","Tara Rose Academy"],["435","Ciana Lynch","Tara Rose Academy"],["448","Maeve Whelan","Shamrock Academy"],["452","Nora Fox","Brigid Academy"],["457","Niamh Keane","Emerald Isle Dancers"],["460","Nora Daly","Tara Rose Academy"],["466","Tara Healy","Brigid Academy"]],"marks":[[70,82,74,73,72,85,75],[85,77,81,82,83,84,76],[87,84,73,77,79,78,81]],"entered":[],"verified":[]}];
+function demoComps(){
+  return DEMO.map(x => {
+    const c = newComp('Demo — ' + x.title);
+    c.demoKey = x.key; c.judges = ['Adjudicator A','Adjudicator B','Adjudicator C'];
+    c.dancers = x.dancers.map(([no,name,school]) => ({ id:uid(), no, name, school }));
+    x.entered.forEach(j => { c.scores[j] = {}; c.dancers.forEach((d,i) => c.scores[j][d.id] = { r:[String(x.marks[j][i])], place:'' }); });
+    c._verify = x.verified.slice(); c._announce = !!x.announced;
+    return c;
+  });
+}
+function finishDemo(c){   // runs after all helpers exist
+  if (c._verify){ c.verified = c.verified || {}; c._verify.forEach(j => c.verified[j] = { sig:sigOf(c,j), by:'MC', at:Date.now() - 20*60000 }); delete c._verify; }
+  if (c._announce){ const D=c.dancers.length, J=c.judges.length; Object.assign(c.view, { screen:'results', gridStep:D*J, showTotals:true, resStep:resultList(c).length, order:'top' }); delete c._announce; }
+}
+function defaultState(){
+  const ds = demoComps(), c = ds[1];
+  return { settings:{ eventName:'CRDM USA Southern Championships', bg:DEFAULT_BG, acc:DEFAULT_ACC, logoL:DEFAULT_LOGO, logoR:'', points:DEFAULT_POINTS.slice() },
+           comps:ds, editId:ds[2].id, liveId:c.id, tab:'overview', judgeTab:0, demoV:2 };
+}
+
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || defaultState(); } catch(e) { state = defaultState(); }
+let saveWarned = false;
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ if(!saveWarned){ saveWarned=true; toast('Could not save — browser storage is full. Try smaller logo images.'); } }
+}
+const getComp = id => state.comps.find(c => c.id===id);
+const editComp = () => getComp(state.editId) || state.comps[0];
+const liveComp = () => getComp(state.liveId) || null;
+
+
+/* ---------------- In-page dialogs (work everywhere, incl. sandboxed viewers) ---------------- */
+function toast(msg){
+  let t = document.getElementById('toast');
+  if (!t){ t = document.createElement('div'); t.id='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(() => t.classList.remove('on'), 3500);
+}
+function dialog({ title, text='', input=false, value='', placeholder='', ok='OK', danger=false, cancel=true }){
+  return new Promise(res => {
+    const ov = document.createElement('div'); ov.className='dlgOv';
+    ov.innerHTML = `<div class="dlg" role="dialog" aria-modal="true"><h3>${esc(title)}</h3>${text?`<p>${esc(text)}</p>`:''}
+      ${input?`<input class="dlgIn" value="${esc(value)}" placeholder="${esc(placeholder)}">`:''}
+      <div class="dlgBtns">${cancel?'<button class="dlgNo">Cancel</button>':''}<button class="dlgOk ${danger?'dangerFill':'primary'}">${esc(ok)}</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('.dlgIn');
+    const done = v => { ov.remove(); document.removeEventListener('keydown', kd, true); res(v); };
+    const kd = e => { if (e.key==='Escape'){ e.stopPropagation(); done(input?null:false); } else if (e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); done(input ? inp.value.trim() || null : true); } };
+    document.addEventListener('keydown', kd, true);
+    ov.querySelector('.dlgOk').onclick = () => done(input ? (inp.value.trim() || null) : true);
+    const no = ov.querySelector('.dlgNo'); if (no) no.onclick = () => done(input?null:false);
+    ov.onclick = e => { if (e.target===ov) done(input?null:false); };
+    setTimeout(() => (inp || (danger && ov.querySelector('.dlgNo')) || ov.querySelector('.dlgOk')).focus(), 30);
+  });
+}
+const askText = (title, placeholder='') => dialog({ title, input:true, placeholder, ok:'Create' });
+const askConfirm = (title, text, ok='Delete') => dialog({ title, text, ok, danger:true });
+
+/* ---------------- Sheet photos (IndexedDB, stays on this device) ---------------- */
+const PhotoDB = (() => {
+  let dbp = null;
+  const db = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open('feisLivePhotos', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch(e){ rej(e); } }));
+  const tx = async (mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('p', mode); const rq = fn(t.objectStore('p')); t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); }); };
+  return { get: k => tx('readonly', s => s.get(k)).catch(() => null), set: (k, v) => tx('readwrite', s => s.put(v, k)), del: k => tx('readwrite', s => s.delete(k)).catch(() => {}) };
+})();
+const SAMPLE_SHEETS = {};
+const photoKey = (c, j) => c.id + ':' + j;
+const isDemo = c => !!c && !!c.demoKey;
+async function getPhoto(c, j){ return (await PhotoDB.get(photoKey(c, j))) || (isDemo(c) ? (SAMPLE_SHEETS[c.demoKey] || [])[j] || null : null); }
+function shrinkPhoto(file, max, q){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => { const k = Math.min(1, max/Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width*k); cv.height = Math.round(img.height*k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); res(cv.toDataURL('image/jpeg', q)); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+    img.src = url;
+  });
+}
+function showImage(src, title){
+  const ov = document.createElement('div'); ov.className = 'full';
+  ov.innerHTML = `<header><h3>${esc(title)}</h3><button class="primary">Close</button></header><div class="imgView"><img src="${src}" alt=""></div>`;
+  ov.querySelector('button').onclick = () => ov.remove();
+  document.body.appendChild(ov);
+}
+
+/* ---------------- Read-back verification ---------------- */
+function entryText(c, j, d){
+  const e = c.scores[j]?.[d.id];
+  if (c.entry === 'place') { const v = (e?.place ?? '').toString().trim(); return v ? ord(+v) || v : ''; }
+  const r = Array.from({length:c.rounds}, (_, i) => (e?.r?.[i] ?? '').toString().trim());
+  return r.some(x => x === '') ? '' : r.join(' + ');
+}
+const sigOf = (c, j) => JSON.stringify([c.entry, c.rounds, c.dancers.map(d => [d.id, entryText(c, j, d)])]);
+function isVerified(c, j){ const v = c.verified?.[j]; return !!v && v.sig === sigOf(c, j); }
+
+/* ---------------- Scoring ---------------- */
+const pointsAt = p => state.settings.points[p-1] ?? 0;
+function sharedPoints(start, k){ let s=0; for(let i=0;i<k;i++) s+=pointsAt(start+i); return r2(s/k); }
+
+function judgeResults(c, j){
+  const out = {}; const sc = c.scores[j] || {};
+  if (c.entry === 'place') {
+    const list = [];
+    c.dancers.forEach(d => { const p = num(sc[d.id]?.place); const ok = Number.isInteger(p) && p>0; out[d.id] = { total:null, rank: ok?p:null, pts:null, tie:false }; if(ok) list.push({id:d.id,p}); });
+    const counts = {}; list.forEach(x => counts[x.p] = (counts[x.p]||0)+1);
+    list.forEach(x => { const k = counts[x.p]; out[x.id].pts = sharedPoints(x.p, k); out[x.id].tie = k>1; });
+  } else {
+    const list = [];
+    c.dancers.forEach(d => {
+      const r = sc[d.id]?.r || []; let t=0, ok=true;
+      for (let i=0;i<c.rounds;i++){ const v=num(r[i]); if(isNaN(v)){ ok=false; break; } t+=v; }
+      out[d.id] = { total: ok ? r2(t) : null, rank:null, pts:null, tie:false };
+      if (ok) list.push({ id:d.id, t:r2(t) });
+    });
+    list.sort((a,b) => b.t-a.t);
+    let i=0;
+    while (i<list.length){
+      let k=1; while (i+k<list.length && list[i+k].t===list[i].t) k++;
+      const pts = sharedPoints(i+1, k);
+      for (let m=0;m<k;m++){ const o=out[list[i+m].id]; o.rank=i+1; o.pts=pts; o.tie=k>1; }
+      i+=k;
+    }
+  }
+  return out;
+}
+function judgeComplete(c, j){ const r = judgeResults(c,j); return c.dancers.filter(d => r[d.id].pts!=null).length; }
+function overall(c){
+  const jr = c.judges.map((_,j) => judgeResults(c,j));
+  const rows = c.dancers.map(d => {
+    let tot=0, complete=true;
+    const pts = jr.map(r => { const p = r[d.id]?.pts; if (p==null) complete=false; else tot+=p; return p ?? null; });
+    return { d, pts, total:r2(tot), complete, place:null, tie:false };
+  });
+  const ranked = rows.filter(r => r.complete).sort((a,b) => b.total-a.total);
+  ranked.forEach((r,i) => {
+    if (i>0 && ranked[i-1].total===r.total){ r.place = ranked[i-1].place; r.tie = ranked[i-1].tie = true; }
+    else r.place = i+1;
+  });
+  return { jr, rows, ranked };
+}
+const placesN = c => c.places>0 ? c.places : Math.ceil(c.dancers.length/2);
+function resultList(c){ const N=placesN(c); return overall(c).ranked.filter(r => r.place<=N); }
+
+/* ---------------- Audience display ---------------- */
+const DISPLAY_CSS = `
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#000}
+body{font-family:"Segoe UI",Calibri,system-ui,sans-serif}
+.stage{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--bg) 75%, #fff 25%), var(--bg) 70%);color:#fff;display:flex}
+.band{width:4.2vw;flex:none;background-color:color-mix(in srgb,var(--acc) 30%,transparent);
+ background-image:repeating-linear-gradient(45deg,var(--acc) 0 .45vw,transparent .45vw 1.3vw),repeating-linear-gradient(-45deg,var(--acc) 0 .45vw,transparent .45vw 1.3vw);opacity:.55}
+.content{flex:1;display:flex;flex-direction:column;padding:2.5vh 2.5vw 3vh;min-width:0}
+.top{display:flex;align-items:center;gap:2vw;height:15vh;flex:none}
+.logo{width:13vh;height:13vh;flex:none;display:flex;align-items:center;justify-content:center}
+.logo img{max-width:100%;max-height:100%;border-radius:50%}
+.titles{flex:1;text-align:center;min-width:0}
+.ev{font-size:2.6vh;letter-spacing:.35em;text-transform:uppercase;color:var(--acc);font-weight:600}
+h1{margin:.6vh 0 0;font-size:6vh;font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rule{height:.5vh;background:linear-gradient(90deg,transparent,var(--acc),transparent);margin:1.5vh 0 2vh;flex:none}
+table{border-collapse:separate;border-spacing:.35vw .55vh;width:100%;table-layout:fixed}
+th{font-size:calc(var(--rh)*.36);font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:.06em;padding:0 .4vw .6vh;vertical-align:bottom;line-height:1.15}
+th small{display:block;text-transform:none;letter-spacing:0;color:#fff;opacity:.85;font-size:.95em;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td{height:var(--rh);font-size:calc(var(--rh)*.6);text-align:center;background:rgba(255,255,255,.93);color:#13263d;border-radius:.5vh;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 .8vw}
+td.no{background:color-mix(in srgb,var(--acc) 85%,#fff);}
+td.hid{background:rgba(255,255,255,.07);color:transparent}
+td.tot{background:#fff;color:#000;font-weight:800}
+td.left{text-align:left}
+td.place{font-weight:800}
+tr.p1 td.place{background:linear-gradient(135deg,#f8e08e,#d4af37);color:#3d2c00}
+tr.p2 td.place{background:linear-gradient(135deg,#f1f3f5,#b8c0c8);color:#22303c}
+tr.p3 td.place{background:linear-gradient(135deg,#f3c9a0,#c98b54);color:#3b2210}
+tr.hidrow td{background:rgba(255,255,255,.07)!important;color:transparent!important}
+.new{animation:pop .7s cubic-bezier(.2,.9,.3,1.2)}
+tr.newrow td{animation:slide .8s cubic-bezier(.2,.9,.3,1)}
+@keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes slide{0%{transform:translateY(-1.5vh);opacity:0;filter:brightness(1.6)}100%{transform:none;opacity:1}}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4vh}
+.hero .logos{display:flex;gap:6vw;align-items:center}
+.hero .logo{width:30vh;height:30vh}
+.hero .ev{font-size:3.4vh}
+.hero h1{font-size:9vh;white-space:normal}
+.hero .sub{font-size:3.5vh;opacity:.8}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:4vh;opacity:.7}
+@media (orientation:portrait){
+ .band{width:2.5vw}
+ .content{padding:2vh 3vw}
+ .top{height:auto;gap:3vw}
+ .top .logo{width:15vw;height:15vw}
+ .ev{font-size:2.6vw;letter-spacing:.15em}
+ h1{font-size:6vw;white-space:normal}
+ table{table-layout:auto;border-spacing:1vw .5vh}
+ th{font-size:2.6vw;letter-spacing:0}
+ table.grid{table-layout:fixed}
+ table.grid col{width:auto!important}
+ th small{display:none}
+ td{font-size:min(calc(var(--rh)*.5),5.5vw);padding:0 1.5vw}
+ .sch{display:none}
+ .hero .logo{width:45vw;height:45vw}
+ .hero h1{font-size:9vw}
+ .hero .ev{font-size:3.4vw}
+}
+.jw{display:none}
+@media (orientation:portrait){.aw{display:none}.jw{display:inline}}
+#hint{position:fixed;bottom:10px;right:14px;color:#fff;opacity:.6;font:13px system-ui;transition:opacity 1s;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:12px}
+`;
+const SHELL = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Results Display</title><style>${DISPLAY_CSS}</style></head>
+<body><div id="root"></div><div id="hint">Double-click or press F for full screen</div><script>
+function fs(){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(function(){}); }
+document.addEventListener('dblclick', fs);
+document.addEventListener('keydown', function(e){
+  if(e.key==='f'||e.key==='F'){ fs(); return; }
+  try { var h = window.opener || (window.parent!==window ? window.parent : null); if(h && h.feisKey && h.feisKey(e.key)) e.preventDefault(); } catch(_){}
+});
+document.addEventListener('click', function(e){ try { if(window.parent!==window && window.parent.feisTap) window.parent.feisTap(e.clientX/window.innerWidth); } catch(_){} });
+if(window.frameElement){ document.getElementById('hint').style.display='none'; }
+setTimeout(function(){ var h=document.getElementById('hint'); if(h) h.style.opacity=0; }, 5000);
+<\/script></body></html>`;
+
+function logoHTML(src){ return `<div class="logo">${src ? `<img src="${src}" alt="">` : ''}</div>`; }
+function frame(inner){
+  const s = state.settings;
+  return `<div class="stage" style="--bg:${esc(s.bg)};--acc:${esc(s.acc)}"><div class="band"></div><div class="content">${inner}</div><div class="band"></div></div>`;
+}
+function header(c){
+  const s = state.settings;
+  return `<div class="top">${logoHTML(s.logoL)}<div class="titles"><div class="ev">${esc(s.eventName)}</div><h1>${esc(c.name)}</h1></div>${logoHTML(s.logoR)}</div><div class="rule"></div>`;
+}
+function rowH(n){ return Math.max(2.2, Math.min(8, 68/(n+1.4))) + 'vh'; }
+
+function titleHTML(c, sub){
+  const s = state.settings;
+  return frame(`<div class="hero"><div class="logos">${logoHTML(s.logoL)}${logoHTML(s.logoR)}</div>
+    <div><div class="ev">${esc(s.eventName)}</div>${c ? `<h1>${esc(c.name)}</h1>` : ''}${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div></div>`);
+}
+function gridHTML(c, anim){
+  const v=c.view, D=c.dancers.length, J=c.judges.length;
+  if (!D) return frame(header(c) + `<div class="empty">No dancers entered yet</div>`);
+  const jr = c.judges.map((_,j) => judgeResults(c,j));
+  const newest = anim && v.gridStep>0 && v.lastReveal==='cell' ? v.gridStep-1 : -1;
+  const totAnim = anim && v.lastReveal==='totals';
+  let h = `<table class="grid" style="--rh:${rowH(D)}"><colgroup><col style="width:15%">${c.judges.map(()=>'<col>').join('')}<col style="width:17%"></colgroup>
+    <thead><tr><th>Dancer No</th>${c.judges.map((n,j)=>`<th><span class="aw">Adjudicator</span><span class="jw">Judge</span> ${j+1}<small>${esc(n)}</small></th>`).join('')}<th>Grid Total</th></tr></thead><tbody>`;
+  c.dancers.forEach((d,i) => {
+    h += `<tr><td class="no">${esc(d.no)}</td>`;
+    let tot=0, allShown=true, complete=true;
+    for (let j=0;j<J;j++){
+      const idx=j*D+i, shown = idx < v.gridStep, p = jr[j][d.id]?.pts;
+      if (p==null) complete=false; else tot+=p;
+      if (!shown) allShown=false;
+      h += shown ? `<td class="${idx===newest?'new':''}">${p==null?'—':fmt(p)}</td>` : `<td class="hid"></td>`;
+    }
+    h += v.showTotals ? `<td class="tot ${totAnim?'new':''}">${complete?fmt(r2(tot)):'—'}</td>` : `<td class="hid"></td>`;
+    h += `</tr>`;
+  });
+  return frame(header(c) + h + `</tbody></table>`);
+}
+function resultsHTML(c, anim){
+  const v=c.view, list=resultList(c), L=list.length, k=Math.min(v.resStep, L);
+  if (!L) return frame(header(c) + `<div class="empty">Results not ready</div>`);
+  const shown = i => v.order==='bottom' ? i >= L-k : i < k;
+  const newest = anim && k>0 && v.lastReveal==='row' ? (v.order==='bottom' ? L-k : k-1) : -1;
+  const allAnim = anim && v.lastReveal==='allrows';
+  let h = `<table style="--rh:${rowH(L)}"><colgroup><col style="width:9%"><col style="width:12%"><col style="width:32%"><col><col style="width:13%"></colgroup>
+    <thead><tr><th>Place</th><th>Dancer No</th><th>Competitor</th><th class="sch">Dance School</th><th>Grid Total</th></tr></thead><tbody>`;
+  list.forEach((r,i) => {
+    const s = shown(i);
+    const cls = !s ? 'hidrow' : `p${r.place} ${(i===newest||allAnim)?'newrow':''}`;
+    h += `<tr class="${cls}"><td class="place">${s?ord(r.place)+(r.tie?'=':''):''}</td><td class="no">${s?esc(r.d.no):''}</td><td class="left">${s?esc(r.d.name):''}</td><td class="left sch">${s?esc(r.d.school):''}</td><td class="tot">${s?fmt(r.total):''}</td></tr>`;
+  });
+  return frame(header(c) + h + `</tbody></table>`);
+}
+function dispHTML(anim){
+  const c = liveComp();
+  if (!c) return titleHTML(null, 'Results will appear here');
+  switch (c.view.screen){
+    case 'grid': return gridHTML(c, anim);
+    case 'results': return resultsHTML(c, anim);
+    case 'blank': return titleHTML(null, 'Results will appear here shortly');
+    default: return titleHTML(c, 'Results');
+  }
+}
+
+let dispWin = null;
+function ensureShell(doc){ if (!doc.getElementById('root')) { doc.open(); doc.write(SHELL); doc.close(); } }
+function pushTo(doc){
+  if (!doc) return; const root = doc.getElementById('root'); if (!root) return;
+  const c = liveComp(); const flash = c ? c.view.flash : 0;
+  const anim = !!flash && doc.__flash !== flash;
+  const html = dispHTML(anim);
+  if (html === doc.__html) return;
+  root.innerHTML = html; doc.__html = html; doc.__flash = flash;
+}
+function pushDisplay(){
+  if (dispWin && !dispWin.closed) { try { pushTo(dispWin.document); } catch(e){} }
+  const pv = document.getElementById('pv');
+  if (pv && pv.contentDocument) pushTo(pv.contentDocument);
+  const pov = document.getElementById('pov');
+  if (pov.__ready && document.getElementById('presentOv').classList.contains('on')) pushTo(pov.contentDocument);
+  updateStatus();
+}
+function openDisplay(){
+  dispWin = window.open('', 'feisLiveDisplay', 'width=1280,height=720');
+  if (!dispWin) { toast('A separate display window can’t open here — use “Present on this device” on the Show tab instead.'); return; }
+  ensureShell(dispWin.document); dispWin.document.__html = null;
+  pushDisplay(); dispWin.focus();
+}
+function updateStatus(){
+  const el = document.getElementById('dispStatus'); const on = dispWin && !dispWin.closed;
+  el.className = 'status ' + (on?'on':'off'); el.textContent = on ? 'Display window open' : 'Display not open';
+  document.getElementById('openDisp').textContent = on ? 'Bring display to front' : 'Open display window';
+}
+setInterval(updateStatus, 1500);
+
+/* ---------------- Show controls ---------------- */
+function flash(c, kind){ c.view.flash = (c.view.flash||0)+1; c.view.lastReveal = kind; }
+function act(fn){ const c = liveComp(); if(!c) return; fn(c, c.view); save(); pushDisplay(); if (state.tab==='show') updateShowCtl(); }
+async function okToReveal(c, judges){
+  const bad = judges.filter(j => !isVerified(c, j) && !(c.view.ov||{})[j]);
+  if (!bad.length) return true;
+  const names = bad.map(j => `Adjudicator ${j+1}`).join(', ');
+  const go = await dialog({ title:'Scores not verified', text:`${names} ${bad.length>1?'haven’t':'hasn’t'} been read back yet. Reveal anyway?`, ok:'Reveal anyway', danger:true });
+  if (go) { c.view.ov = c.view.ov || {}; bad.forEach(j => c.view.ov[j] = true); save(); }
+  return go;
+}
+async function next(){
+  const c0 = liveComp(); if (!c0) return;
+  const v0 = c0.view, D0 = c0.dancers.length, J0 = c0.judges.length;
+  if (v0.screen==='grid' && v0.gridStep < D0*J0 && D0 && !(await okToReveal(c0, [Math.floor(v0.gridStep/D0)]))) return;
+  if ((v0.screen==='results' || (v0.screen==='grid' && v0.gridStep>=D0*J0)) && !(await okToReveal(c0, c0.judges.map((_,j)=>j)))) return;
+  act((c,v) => {
+    const D=c.dancers.length, J=c.judges.length, L=resultList(c).length;
+    if (v.screen==='title' || v.screen==='blank'){ v.screen='grid'; return; }
+    if (v.screen==='grid'){
+      if (v.gridStep < D*J){ v.gridStep++; flash(c,'cell'); }
+      else if (!v.showTotals){ v.showTotals=true; flash(c,'totals'); }
+      else { v.screen='results'; }
+      return;
+    }
+    if (v.screen==='results' && v.resStep < L){ v.resStep++; flash(c,'row'); }
+  });
+}
+function back(){
+  act((c,v) => {
+    if (v.screen==='grid'){ if (v.showTotals) v.showTotals=false; else if (v.gridStep>0) v.gridStep--; }
+    else if (v.screen==='results' && v.resStep>0) v.resStep--;
+    v.lastReveal = null;
+  });
+}
+function setScreen(s){ act((c,v) => { v.screen=s; v.lastReveal=null; }); }
+window.feisKey = function(key){
+  if (document.querySelector('.dlgOv, .full')) return false;
+  if (key===' ' || key==='ArrowRight' || key==='PageDown' || key==='Enter'){ next(); return true; }
+  if (key==='ArrowLeft' || key==='PageUp' || key==='Backspace'){ back(); return true; }
+  const m = { t:'title', g:'grid', r:'results', h:'blank' }[key.toLowerCase()];
+  if (m){ setScreen(m); return true; }
+  return false;
+};
+function startPresent(){
+  const ov = document.getElementById('presentOv'), pov = document.getElementById('pov'), info = document.getElementById('povInfo');
+  ov.classList.add('on');
+  if (!pov.__ready) { pov.onload = () => { pov.__ready = true; pov.contentDocument.__html = null; pushDisplay(); }; pov.srcdoc = SHELL; }
+  else { pov.contentDocument.__html = null; pushDisplay(); }
+  try { const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch(_){}
+  info.innerHTML = 'Tap the right side for <b>Next</b> · left side for <b>Back</b>' + (innerHeight > innerWidth ? '<br>Turn your device sideways for the best view' : '');
+  info.style.opacity = 1; clearTimeout(info.__t); info.__t = setTimeout(() => info.style.opacity = 0, 5000);
+}
+function stopPresent(){
+  document.getElementById('presentOv').classList.remove('on');
+  try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.webkitFullscreenElement) document.webkitExitFullscreen(); } catch(_){}
+  if (state.tab==='show') updateShowCtl();
+}
+window.feisTap = x => { if (!document.getElementById('presentOv').classList.contains('on')) return; x < 0.3 ? back() : next(); };
+document.getElementById('povX').onclick = stopPresent;
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape' && document.getElementById('presentOv').classList.contains('on')) { stopPresent(); return; }
+  if (state.tab!=='show') return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.target.tagName==='BUTTON' && (e.key===' '||e.key==='Enter')) { e.preventDefault(); }
+  if (window.feisKey(e.key)) e.preventDefault();
+});
+
+/* ---------------- Control UI ---------------- */
+const main = document.getElementById('main');
+function renderHeader(){
+  const sel = document.getElementById('editSel');
+  sel.innerHTML = state.comps.map(c => `<option value="${c.id}" ${c.id===state.editId?'selected':''}>${esc(c.name)}</option>`).join('');
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab===state.tab));
+}
+function render(){
+  renderHeader();
+  ({ overview:renderOverview, setup:renderSetup, scores:renderScores, show:renderShow, settings:renderSettings }[state.tab] || renderOverview)();
+}
+
+document.getElementById('editSel').onchange = e => { state.editId = e.target.value; state.judgeTab=0; save(); render(); };
+document.getElementById('newComp').onclick = async () => {
+  const name = await askText('New competition', 'e.g. Under 11 Open Championship'); if (!name) return;
+  const c = newComp(name.trim()); const prev = editComp();
+  if (prev){ c.judges = prev.judges.slice(); c.rounds = prev.rounds; c.entry = prev.entry; }
+  state.comps.push(c); state.editId = c.id; state.tab='setup'; save(); render();
+};
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state.tab=b.dataset.tab; save(); render(); });
+document.getElementById('openDisp').onclick = () => (dispWin && !dispWin.closed) ? dispWin.focus() : openDisplay();
+
+function compStatus(c){
+  const D=c.dancers.length, J=c.judges.length, v=c.view, L=resultList(c).length;
+  const ent=c.judges.map((_,j)=>judgeComplete(c,j)), full=ent.filter(n=>D && n===D).length;
+  const vc=c.judges.filter((_,j)=>isVerified(c,j)).length;
+  if (!D) return ['Setting up','grey'];
+  if (v.screen==='results' && L && v.resStep>=L) return ['Announced','done'];
+  if (full===J && vc===J) return ['Ready to announce','ready'];
+  if (full===J) return [`Needs read-back · ${vc}/${J} checked`,'warn'];
+  if (ent.some(n=>n>0)) return [`Entering sheets · ${full}/${J} in`,'work'];
+  return ['Waiting for sheets','grey'];
+}
+function renderOverview(){
+  const counts = {};
+  state.comps.forEach(c => { const k = compStatus(c)[1]; counts[k] = (counts[k]||0)+1; });
+  main.innerHTML = `
+  <section class="card"><h2>All competitions <span class="muted">— where each one stands. Tap a sheet chip to jump straight to that adjudicator.</span></h2>
+    <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
+    <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
+    ${state.comps.map(c => { const [st,k] = compStatus(c), D=c.dancers.length;
+      return `<tr><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <span class="pill onair">ON SCREEN</span>':''}<span class="nm">${D} dancers</span></td>
+        <td class="num hide-m">${D}</td>
+        <td><div class="chips">${c.judges.map((n,j)=>{ const e=judgeComplete(c,j), ver=isVerified(c,j);
+          const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
+          const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
+          return `<button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}"><span class="ph" data-ph="${c.id}:${j}"></span>${j+1}</button>`; }).join('')}</div></td>
+        <td><span class="st ${k}">${st}</span></td>
+        <td class="num"><div class="btns"><button data-enter="${c.id}">Enter scores</button><button data-live="${c.id}">Show</button></div></td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · 📷 = sheet photo on file' : ''}</div>
+  </section>`;
+  const go = (c, j) => { state.editId=c.id; state.judgeTab=j; state.tab='scores'; save(); render(); scrollTo(0,0); };
+  main.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(getComp(b.dataset.go), +b.dataset.j));
+  main.querySelectorAll('[data-enter]').forEach(b => b.onclick = () => { const c=getComp(b.dataset.enter); const j=c.judges.findIndex((_,j)=>!isVerified(c,j)); go(c, j<0?0:j); });
+  main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
+  if (photosOn()) main.querySelectorAll('[data-ph]').forEach(async el => { const [id,j]=el.dataset.ph.split(':'); const c=getComp(id); if (c && await getPhoto(c,+j)) el.textContent='📷'; });
+}
+function renderSetup(){
+  const c = editComp();
+  if (!c){ main.innerHTML = `<div class="card">No competitions yet — click “+ New competition”.</div>`; return; }
+  const opt = (vals, cur, lab=x=>x) => vals.map(v => `<option value="${v}" ${String(v)===String(cur)?'selected':''}>${lab(v)}</option>`).join('');
+  main.innerHTML = `
+  <section class="card"><h2>Competition</h2>
+    <div class="row">
+      <label>Name <input id="cName" size="40" value="${esc(c.name)}"></label>
+      <label>Adjudicators <select id="cJ">${opt([1,2,3,4,5,6,7], c.judges.length)}</select></label>
+      <label>Score sheets give <select id="cE">${opt(['raw','place'], c.entry, v => v==='raw'?'Raw marks':'Placings')}</select></label>
+      <label>Rounds per sheet <select id="cR" ${c.entry==='place'?'disabled':''}>${opt([1,2,3], c.rounds)}</select></label>
+      <label>Places to announce <input id="cP" type="number" min="0" style="width:150px" value="${c.places||''}" placeholder="auto: ${Math.ceil(c.dancers.length/2)} (top half)"></label>
+    </div>
+    <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
+    <div class="row"><button id="dupComp">Duplicate setup for next competition</button><button id="delComp" class="danger">Delete this competition</button></div>
+  </section>
+  <section class="card"><h2>Dancers <span class="muted">— ${c.dancers.length} entered, listed in the order they appear on the score grid</span></h2>
+    <table class="tbl dancers"><thead><tr><th style="width:40px">#</th><th style="width:110px">Dancer no.</th><th>Name</th><th>Dance school</th><th style="width:40px"></th></tr></thead><tbody>
+    ${c.dancers.map((d,i) => `<tr><td class="muted">${i+1}</td><td><input class="w-s" data-d="${d.id}" data-f="no" value="${esc(d.no)}"></td><td><input data-d="${d.id}" data-f="name" value="${esc(d.name)}"></td><td><input data-d="${d.id}" data-f="school" value="${esc(d.school)}"></td><td><button title="Remove" data-del="${d.id}">✕</button></td></tr>`).join('')}
+    </tbody></table>
+    <div class="row"><button id="addD">+ Add dancer</button><button id="sortD">Sort by dancer number</button></div>
+    <details ${c.dancers.length?'':'open'}><summary><b>Paste a list from Excel</b> <span class="muted">— three columns: dancer no., name, school; one dancer per line</span></summary>
+      <textarea id="paste" rows="7" style="width:100%;margin-top:8px" placeholder="421&#9;First Last&#9;School name"></textarea>
+      <div class="row" style="margin-top:6px"><button id="pasteAdd" class="primary">Add these dancers</button></div>
+    </details>
+  </section>`;
+  const $ = id => document.getElementById(id);
+  $('cName').oninput = e => { c.name = e.target.value; save(); renderHeader(); pushDisplay(); };
+  $('cJ').onchange = e => { const n=+e.target.value; while (c.judges.length<n) c.judges.push('Adjudicator '+(c.judges.length+1)); c.judges.length=n; resetView(c); save(); render(); };
+  $('cE').onchange = e => { c.entry = e.target.value; save(); render(); pushDisplay(); };
+  $('cR').onchange = e => { c.rounds = +e.target.value; save(); pushDisplay(); };
+  $('cP').oninput = e => { c.places = Math.max(0, parseInt(e.target.value)||0); save(); pushDisplay(); };
+  main.querySelectorAll('[data-judge]').forEach(inp => inp.oninput = () => { c.judges[+inp.dataset.judge] = inp.value; save(); pushDisplay(); });
+  main.querySelectorAll('[data-d]').forEach(inp => inp.oninput = () => { const d=c.dancers.find(x=>x.id===inp.dataset.d); d[inp.dataset.f]=inp.value; save(); pushDisplay(); });
+  main.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { const d=c.dancers.find(x=>x.id===b.dataset.del); if(!(await askConfirm(`Remove dancer ${d.no}?`, d.name||'', 'Remove'))) return; c.dancers=c.dancers.filter(x=>x.id!==d.id); save(); render(); pushDisplay(); });
+  $('addD').onclick = () => { c.dancers.push({id:uid(),no:'',name:'',school:''}); save(); render(); const ins=main.querySelectorAll('[data-f="no"]'); ins[ins.length-1].focus(); };
+  $('sortD').onclick = () => { c.dancers.sort((a,b) => (parseFloat(a.no)||0)-(parseFloat(b.no)||0) || String(a.no).localeCompare(b.no)); save(); render(); pushDisplay(); };
+  $('pasteAdd').onclick = () => {
+    const lines = $('paste').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let added=0;
+    lines.forEach(l => { const p = l.includes('\t') ? l.split('\t') : l.split(','); const [no,name,school] = p.map(x => (x||'').trim());
+      if (/^dancer/i.test(no)) return; c.dancers.push({id:uid(),no,name:name||'',school:school||''}); added++; });
+    save(); render(); pushDisplay(); if (added) toast(`Added ${added} dancers.`);
+  };
+  $('delComp').onclick = async () => {
+    if (!(await askConfirm(`Delete “${c.name}”?`, 'This removes the competition and all its scores. It can’t be undone.'))) return;
+    c.judges.forEach((_,j) => PhotoDB.del(photoKey(c,j)));
+    state.comps = state.comps.filter(x => x.id!==c.id);
+    if (!state.comps.length) state.comps.push(newComp('New competition'));
+    state.editId = state.comps[0].id; if (!getComp(state.liveId)) state.liveId = state.comps[0].id;
+    save(); render(); pushDisplay();
+  };
+  $('dupComp').onclick = async () => {
+    const name = await askText('Name of the next competition', 'e.g. Under 12 Open Championship'); if (!name) return;
+    const n = newComp(name.trim()); n.judges=c.judges.slice(); n.rounds=c.rounds; n.entry=c.entry; n.places=c.places;
+    state.comps.push(n); state.editId=n.id; save(); render();
+  };
+}
+function resetView(c){ const f=c.view.flash||0; c.view = newView(); c.view.flash=f; }
+
+function ensureScore(c,j,id){ c.scores[j] = c.scores[j] || {}; return c.scores[j][id] = c.scores[j][id] || { r:[], place:'' }; }
+let rb = { key:null, on:false, ticks:new Set() };   // read-back state for the adjudicator on screen
+function rbFor(c, j){ const k = c.id+':'+j; if (rb.key !== k) rb = { key:k, on:false, ticks:new Set() }; return rb; }
+function renderScores(){
+  const c = editComp(); if (!c) return renderSetup();
+  if (state.judgeTab >= c.judges.length) state.judgeTab = 0;
+  const j = state.judgeTab, sc = c.scores[j] || {};
+  const isPlace = c.entry==='place';
+  const rounds = isPlace ? 0 : c.rounds;
+  const R = rbFor(c, j);
+  const usePhotos = photosOn(), n0 = usePhotos ? 1 : 0;
+  main.innerHTML = `
+  <section class="card">
+    <h2>Enter score sheets <span class="muted">— pick the adjudicator${usePhotos?', photograph the sheet, then type the marks beside it':', then type the marks'}.</span></h2>
+    <div class="judgeTabs" id="jtabs"></div>
+    ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
+    <div class="entryGrid ${usePhotos?'':'noPhotos'}">
+      ${usePhotos ? '<div class="sheetPane" id="sheetPane"></div>' : ''}
+      <div class="entryPane ${R.on?'rbOn':''}">
+        <div class="stepHead"><span class="step">${R.on?n0+2:n0+1}</span><b>${R.on ? 'Read back' : 'Type the marks'}</b>
+          <span id="verState" class="vstate"></span></div>
+        ${R.on ? `<div class="hint">One person reads each dancer number and mark aloud <b>from the paper sheet</b>; the other ticks the row if it matches. If one is wrong, just fix it here — that row un-ticks so it gets read again.</div>`
+               : `<div class="muted" style="margin-bottom:6px"><kbd>Enter</kbd> moves to the next dancer.</div>`}
+        <table class="tbl scores"><thead><tr>${R.on?'<th style="width:36px">✓</th>':''}<th style="width:90px">Dancer</th><th class="hide-m">Name</th>
+          ${isPlace ? '<th class="num" style="width:100px">Placing</th>' : Array.from({length:rounds},(_,i)=>`<th class="num" style="width:100px">${rounds>1?'Round '+(i+1):'Raw mark'}</th>`).join('') + (rounds>1?'<th class="num">Total</th>':'')}
+          <th class="num">Place</th><th class="num">Irish pts</th></tr></thead><tbody>
+        ${c.dancers.map(d => { const s = sc[d.id] || {r:[],place:''};
+          return `<tr data-row="${d.id}">${R.on?`<td><input type="checkbox" class="tick" data-tick="${d.id}" ${R.ticks.has(d.id)?'checked':''}></td>`:''}<td><b>${esc(d.no)}</b><span class="nm">${esc(d.name)}</span></td><td class="hide-m">${esc(d.name)}</td>
+          ${isPlace ? `<td class="num"><input class="w-n" inputmode="numeric" data-sid="${d.id}" data-col="p" value="${esc(s.place)}"></td>`
+                   : Array.from({length:rounds},(_,i)=>`<td class="num"><input class="w-n" inputmode="decimal" data-sid="${d.id}" data-col="${i}" value="${esc(s.r?.[i] ?? '')}"></td>`).join('') + (rounds>1?`<td class="num" id="t_${d.id}"></td>`:'')}
+          <td class="num" id="k_${d.id}"></td><td class="num" id="p_${d.id}"></td></tr>`; }).join('')}
+        </tbody></table>
+        ${R.on ? `<div class="rbFoot"><input id="rbBy" placeholder="Checked by (initials)" style="width:170px" value="${esc(state.lastChecker||'')}">
+            <span class="progress" id="rbCount"></span><div class="spacer"></div>
+            <button id="rbCancel">Stop read-back</button><button id="rbOk" class="primary" disabled>All match — mark verified</button></div>`
+               : `<div class="rbFoot"><div class="spacer"></div><button id="rbStart" class="primary" ${c.dancers.length?'':'disabled'}>✔ Start read-back</button></div>`}
+      </div>
+    </div>
+  </section>
+  <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary"></div></section>`;
+  main.querySelectorAll('input[data-sid]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const s = ensureScore(c, j, inp.dataset.sid);
+      if (inp.dataset.col==='p') s.place = inp.value; else s.r[+inp.dataset.col] = inp.value;
+      if (R.on && R.ticks.delete(inp.dataset.sid)) { const t = main.querySelector(`[data-tick="${inp.dataset.sid}"]`); if (t) t.checked = false; }
+      save(); refreshScoreCalc(); if (c.id===state.liveId) pushDisplay();
+    });
+    inp.addEventListener('keydown', e => {
+      if (!['Enter','ArrowDown','ArrowUp'].includes(e.key)) return;
+      e.preventDefault();
+      const col = [...main.querySelectorAll(`input[data-col="${inp.dataset.col}"]`)];
+      const i = col.indexOf(inp) + (e.key==='ArrowUp' ? -1 : 1);
+      if (col[i]) { col[i].focus(); col[i].select(); }
+      else if (e.key==='Enter' && inp.dataset.col!=='p' && +inp.dataset.col < rounds-1) { const nx = main.querySelector(`input[data-col="${+inp.dataset.col+1}"]`); nx && (nx.focus(), nx.select()); }
+    });
+  });
+  main.querySelectorAll('[data-tick]').forEach(cb => cb.onchange = () => { cb.checked ? R.ticks.add(cb.dataset.tick) : R.ticks.delete(cb.dataset.tick); refreshScoreCalc(); });
+  const $ = id => document.getElementById(id);
+  if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
+  if ($('rbCancel')) $('rbCancel').onclick = () => { R.on = false; renderScores(); };
+  if ($('rbOk')) $('rbOk').onclick = () => {
+    const by = $('rbBy').value.trim(); state.lastChecker = by;
+    c.verified = c.verified || {}; c.verified[j] = { sig: sigOf(c, j), by, at: Date.now() };
+    R.on = false; save(); renderScores(); toast(`Adjudicator ${j+1} verified.`);
+  };
+  loadPhoto();
+  refreshScoreCalc();
+  const first = main.querySelector('input[data-sid]'); if (first && !R.on && matchMedia('(min-width: 761px)').matches) first.focus();
+}
+function refreshScoreCalc(){
+  const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = c.dancers.length, R = rbFor(c, j);
+  document.getElementById('jtabs').innerHTML = c.judges.map((n,i) => { const done = judgeComplete(c,i);
+    const ver = isVerified(c,i);
+    return `<button data-j="${i}" class="${i===j?'on':''}">Adjudicator ${i+1}: ${esc(n)}<small>${done}/${D} entered · <span class="${ver?'vok':'vno'}">${ver?'verified ✓':'not verified'}</span></small></button>`; }).join('');
+  const vs = document.getElementById('verState'), vv = c.verified?.[j];
+  if (isVerified(c,j)) { vs.className='vstate ok'; vs.textContent = `Verified ✓${vv.by ? ' by '+vv.by : ''} at ${new Date(vv.at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`; }
+  else { vs.className='vstate no'; vs.textContent = vv ? 'Changed since read-back — check again' : 'Not read back yet'; }
+  document.querySelectorAll('#jtabs button').forEach(b => b.onclick = () => { state.judgeTab=+b.dataset.j; save(); renderScores(); });
+  c.dancers.forEach(d => {
+    const r = res[d.id], t = document.getElementById('t_'+d.id), k = document.getElementById('k_'+d.id), p = document.getElementById('p_'+d.id);
+    if (t) t.textContent = r.total==null ? '' : fmt(r.total);
+    if (k) k.innerHTML = r.rank==null ? '' : ord(r.rank) + (r.tie ? ' <span class="pill tie">tie</span>' : '');
+    if (p) p.innerHTML = r.pts==null ? '' : `<b>${fmt(r.pts)}</b>`;
+    const row = main.querySelector(`tr[data-row="${d.id}"]`); if (row) row.classList.toggle('ticked', R.on && R.ticks.has(d.id));
+  });
+  main.querySelectorAll('input[data-sid]').forEach(inp => { const v=inp.value.trim(); inp.classList.toggle('bad', v!=='' && (isNaN(Number(v)) || (inp.dataset.col==='p' && !(Number.isInteger(Number(v)) && Number(v)>0)))); });
+  if (R.on) {
+    const missing = c.dancers.filter(d => !entryText(c, j, d)).length, n = c.dancers.filter(d => R.ticks.has(d.id)).length;
+    document.getElementById('rbCount').innerHTML = `${n} of ${D} checked` + (missing ? ` · <span class="bad-t">${missing} missing</span>` : '');
+    document.getElementById('rbOk').disabled = !(D && n === D && !missing);
+  }
+  document.getElementById('summary').innerHTML = summaryHTML(c);
+}
+async function loadPhoto(){
+  const c = editComp(), j = state.judgeTab, pane = document.getElementById('sheetPane'); if (!pane) return;
+  const url = await getPhoto(c, j);
+  if (state.judgeTab !== j || editComp() !== c || !document.body.contains(pane)) return;
+  const fileIn = `<input type="file" accept="image/*" capture="environment" id="photoIn" hidden>`;
+  pane.innerHTML = url
+    ? `<div class="stepHead"><span class="step">1</span><b>Score sheet</b><div class="spacer"></div>
+         <button id="photoBig">⤢ Enlarge</button><label class="btnlike">📷 Retake${fileIn}</label></div>
+       <div class="sheetImg"><img src="${url}" alt="Score sheet photo"></div>`
+    : `<div class="stepHead"><span class="step">1</span><b>Score sheet</b></div>
+       <label class="sheetEmpty">${fileIn}<div style="font-size:34px">📷</div><b>Take a photo of Adjudicator ${j+1}'s sheet</b>
+         <span class="muted">It stays beside the boxes while you type and read back, and is kept on file on this device.</span>
+         <span class="btnlike primaryLike">Take or choose photo</span></label>`;
+  document.getElementById('photoIn').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const u = await shrinkPhoto(f, 1800, 0.72); await PhotoDB.set(photoKey(c, j), u); toast('Sheet photo saved.'); loadPhoto(); }
+    catch(_) { toast('Could not save the photo on this device.'); }
+  };
+  const big = document.getElementById('photoBig'); if (big) big.onclick = () => showImage(url, `Adjudicator ${j+1}: ${c.judges[j]} — score sheet`);
+}
+function summaryHTML(c){
+  const o = overall(c), N = placesN(c);
+  const rows = [...o.rows].sort((a,b) => (a.place??1e9)-(b.place??1e9));
+  const ties = o.ranked.filter(r => r.tie && r.place<=N);
+  return `<div class="tblwrap"><table class="tbl"><thead><tr><th class="num" style="width:70px">Place</th><th style="width:90px">Dancer no.</th><th>Name</th><th class="hide-m">School</th>${c.judges.map((n,j)=>`<th class="num">${esc(n)}</th>`).join('')}<th class="num">Grid total</th></tr></thead><tbody>
+  ${rows.map(r => `<tr style="${r.place && r.place<=N ? '' : 'color:#8a96a3'}"><td class="num"><b>${r.place ? ord(r.place)+(r.tie?'=':'') : ''}</b></td><td>${esc(r.d.no)}</td><td>${esc(r.d.name)}</td><td class="hide-m">${esc(r.d.school)}</td>
+    ${r.pts.map(p => `<td class="num">${p==null?'<span class="bad-t">—</span>':fmt(p)}</td>`).join('')}<td class="num"><b>${r.complete?fmt(r.total):''}</b></td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="muted">Top ${N} will be announced (grey rows are not placed).${ties.length ? ` <span class="warn"><b>Tie on grid total</b> for ${ties.map(r=>r.d.no).join(', ')} — shown as a shared place. Apply your tie-break rule if needed.</span>` : ''}</div>`;
+}
+
+function renderShow(){
+  main.innerHTML = `
+  <section class="card">
+    <div class="row"><label>Competition on screen <select id="liveSel">${state.comps.map(c => `<option value="${c.id}" ${c.id===state.liveId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <div class="muted" style="padding-bottom:6px">You can keep entering scores for other competitions while this one is on screen.</div></div>
+    <div class="showgrid">
+      <div>
+        <div class="screens">
+          <button data-screen="title">Title</button><button data-screen="grid">Score grid</button>
+          <button data-screen="results">Results</button><button data-screen="blank">Holding screen</button>
+        </div>
+        <button id="nextBtn" class="big primary">Next ▶<small>Space · → · Page Down · presentation clicker</small></button>
+        <button id="backBtn" style="width:100%">◀ Back</button>
+        <button id="presentBtn" class="present">⛶ Present on this device (full screen)</button>
+        <div id="screenCtl" class="ctl"></div>
+        <div id="warn" class="ctl"></div>
+        <div class="ctl keys"><b>Shortcuts</b> (also work in the display window)<br><kbd>T</kbd> title · <kbd>G</kbd> grid · <kbd>R</kbd> results · <kbd>H</kbd> holding · <kbd>←</kbd> back<br>In the display window: double-click or <kbd>F</kbd> for full screen.</div>
+      </div>
+      <div><div class="pvlabel">What the audience sees</div><div id="pvBox"><iframe id="pv" title="preview"></iframe></div></div>
+    </div>
+  </section>`;
+  document.getElementById('liveSel').onchange = e => { state.liveId = e.target.value; save(); pushDisplay(); updateShowCtl(); };
+  main.querySelectorAll('[data-screen]').forEach(b => b.onclick = () => setScreen(b.dataset.screen));
+  document.getElementById('nextBtn').onclick = next;
+  document.getElementById('backBtn').onclick = back;
+  document.getElementById('presentBtn').onclick = startPresent;
+  const pv = document.getElementById('pv');
+  pv.onload = () => { pv.contentDocument.__html=null; pushDisplay(); };
+  pv.srcdoc = SHELL;
+  sizePreview(); updateShowCtl();
+}
+function sizePreview(){
+  const box = document.getElementById('pvBox'), pv = document.getElementById('pv'); if (!box||!pv) return;
+  const s = box.clientWidth/1280; pv.style.transform = `scale(${s})`; box.style.height = (720*s)+'px';
+}
+window.addEventListener('resize', sizePreview);
+function updateShowCtl(){
+  const c = liveComp(); if (!c || !document.getElementById('screenCtl')) return;
+  const v = c.view, D=c.dancers.length, J=c.judges.length, L=resultList(c).length;
+  main.querySelectorAll('[data-screen]').forEach(b => b.classList.toggle('on', b.dataset.screen===v.screen));
+  const ctl = document.getElementById('screenCtl');
+  if (v.screen==='grid'){
+    const curJ = Math.min(J-1, Math.floor(v.gridStep/Math.max(D,1)));
+    ctl.innerHTML = `<div class="progress"><b>Score grid:</b> ${v.gridStep} of ${D*J} scores shown${v.showTotals?' · totals shown':''}</div>
+      <div class="btns"><button id="gJudge">Reveal rest of Adjudicator ${curJ+1}</button><button id="gAll">Reveal all scores</button>
+      <button id="gTot">${v.showTotals?'Hide':'Show'} grid totals</button><button id="gReset">Hide all</button></div>`;
+    document.getElementById('gJudge').onclick = async () => { if (!(await okToReveal(c, [curJ]))) return; act((c,v) => { const end=Math.min(D*J, (Math.floor(v.gridStep/D)+1)*D); if (end>v.gridStep){ v.gridStep=end; flash(c,'cell'); } }); };
+    document.getElementById('gAll').onclick = async () => { if (!(await okToReveal(c, c.judges.map((_,j)=>j)))) return; act((c,v) => { v.gridStep=D*J; flash(c,'cell'); }); };
+    document.getElementById('gTot').onclick = () => act((c,v) => { v.showTotals=!v.showTotals; if (v.showTotals) flash(c,'totals'); else v.lastReveal=null; });
+    document.getElementById('gReset').onclick = () => act((c,v) => { v.gridStep=0; v.showTotals=false; v.lastReveal=null; v.ov={}; });
+  } else if (v.screen==='results'){
+    ctl.innerHTML = `<div class="progress"><b>Results:</b> ${Math.min(v.resStep,L)} of ${L} places shown</div>
+      <label class="muted">Reveal order <select id="rOrder"><option value="top" ${v.order==='top'?'selected':''}>1st place first</option><option value="bottom" ${v.order==='bottom'?'selected':''}>Last place first (build to 1st)</option></select></label>
+      <div class="btns"><button id="rAll">Reveal all</button><button id="rReset">Hide all</button></div>`;
+    document.getElementById('rOrder').onchange = e => act((c,v) => { v.order=e.target.value; v.lastReveal=null; });
+    document.getElementById('rAll').onclick = async () => { if (!(await okToReveal(c, c.judges.map((_,j)=>j)))) return; act((c,v) => { v.resStep=L; flash(c,'allrows'); }); };
+    document.getElementById('rReset').onclick = () => act((c,v) => { v.resStep=0; v.lastReveal=null; });
+  } else {
+    ctl.innerHTML = `<div class="progress">Press <b>Next</b> to go to the score grid. Each press then reveals one score, adjudicator by adjudicator, then the grid totals, then the results.</div>`;
+  }
+  const warns = [];
+  c.judges.forEach((n,j) => { const done = judgeComplete(c,j); if (done<D) warns.push(`Adjudicator ${j+1} (${esc(n)}): ${D-done} score${D-done>1?'s':''} missing`); else if (!isVerified(c,j)) warns.push(`Adjudicator ${j+1} (${esc(n)}): not read back yet`); });
+  if (!D) warns.push('No dancers entered for this competition.');
+  document.getElementById('warn').innerHTML = warns.length ? `<div class="warn"><b>Check before revealing:</b><br>${warns.join('<br>')}</div>` : `<div class="pill ok">All scores entered and verified</div>`;
+}
+
+function renderSettings(){
+  const s = state.settings;
+  main.innerHTML = `
+  <section class="card"><h2>Display look</h2>
+    <div class="row">
+      <label>Event name (top line on every screen) <input id="sEv" size="40" value="${esc(s.eventName)}"></label>
+      <label>Background <input id="sBg" type="color" value="${esc(s.bg)}"></label>
+      <label>Accent <input id="sAcc" type="color" value="${esc(s.acc)}"></label>
+      <button id="sDefCol">Reset colors</button>
+    </div>
+    ${NO_PHOTOS ? '' : `<div class="row"><label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px;font-weight:600"><input type="checkbox" id="sPhotos" ${s.photos!==false?'checked':''} style="width:18px;height:18px"> Use photos of score sheets</label>
+      <span class="muted" style="padding-bottom:2px">Turn off if photographing sheets isn't allowed. Photos already taken stay on this device.</span></div>`}
+    <div class="row">
+      ${['L','R'].map(k => `<label>${k==='L'?'Left':'Right'} logo <div class="logoPrev">${s['logo'+k]?`<img src="${s['logo'+k]}">`:'none'}</div>
+        <input type="file" accept="image/*" data-logo="${k}" style="max-width:200px"> ${s['logo'+k]?`<button data-rmlogo="${k}">Remove</button>`:''}</label>`).join('')}
+    </div>
+  </section>
+  <section class="card"><h2>Irish points table</h2>
+    <p class="muted">Points for 1st, 2nd, 3rd… Tied dancers share the average of the places they occupy (e.g. tied for 3rd/4th = (65+60)/2 = 62.5).</p>
+    <textarea id="sPts" rows="3" style="width:100%">${s.points.join(', ')}</textarea>
+    <div class="row" style="margin-top:6px"><button id="sPtsSave" class="primary">Save points table</button><button id="sPtsDef">Reset to standard</button></div>
+  </section>
+  <section class="card"><h2>Backup &amp; export</h2>
+    <p class="muted">Everything saves automatically in this browser on this laptop. Download a backup before the event and at breaks, so you can move to another laptop if needed.</p>
+    <div class="row">
+      <button id="bDown" class="primary">Download backup</button>
+      <label>Restore from backup <input type="file" id="bUp" accept=".json,application/json"></label>
+      <button id="csv">Export “${esc(editComp()?.name||'')}” results (CSV for Excel)</button>
+      <button id="demoReload">Reload demo competitions</button>
+      <button id="demoRemove">Remove demo competitions</button>
+      <button id="copyRes">Copy results (paste into Excel)</button>
+      <button id="wipe" class="danger">Start fresh (delete everything)</button>
+    </div>
+  </section>`;
+  const $ = id => document.getElementById(id);
+  $('sEv').oninput = e => { s.eventName=e.target.value; save(); pushDisplay(); };
+  $('sBg').oninput = e => { s.bg=e.target.value; save(); pushDisplay(); };
+  $('sAcc').oninput = e => { s.acc=e.target.value; save(); pushDisplay(); };
+  if ($('sPhotos')) $('sPhotos').onchange = e => { s.photos = e.target.checked; save(); toast(s.photos ? 'Sheet photos turned on.' : 'Sheet photos turned off.'); };
+  $('sDefCol').onclick = () => { s.bg=DEFAULT_BG; s.acc=DEFAULT_ACC; save(); renderSettings(); pushDisplay(); };
+  main.querySelectorAll('[data-logo]').forEach(inp => inp.onchange = () => { const f=inp.files[0]; if(!f) return; shrinkImage(f, url => { s['logo'+inp.dataset.logo]=url; save(); renderSettings(); pushDisplay(); }); });
+  main.querySelectorAll('[data-rmlogo]').forEach(b => b.onclick = () => { s['logo'+b.dataset.rmlogo]=''; save(); renderSettings(); pushDisplay(); });
+  $('sPtsSave').onclick = () => { const a=$('sPts').value.split(/[\s,]+/).map(Number).filter(n=>!isNaN(n)); if(a.length<3) return toast('Enter at least 3 numbers.'); s.points=a; save(); pushDisplay(); toast('Points table saved.'); };
+  $('sPtsDef').onclick = () => { s.points=DEFAULT_POINTS.slice(); save(); renderSettings(); pushDisplay(); };
+  $('bDown').onclick = () => download(`feis-results-backup-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`, JSON.stringify(state), 'application/json');
+  $('bUp').onchange = e => { const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload = async () => { let st; try { st=JSON.parse(rd.result); if(!st.comps||!st.settings) throw 0; } catch(_){ return toast('That file is not a valid backup.'); } if(!(await askConfirm('Restore this backup?', 'Everything here will be replaced with the backup.', 'Restore'))) return; state=st; save(); render(); pushDisplay(); toast('Backup restored.'); }; rd.readAsText(f); };
+  $('csv').onclick = () => { const c=editComp(); const o=overall(c); const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+    const lines=[['Place','Dancer No','Name','School',...c.judges,'Grid Total'].map(q).join(',')];
+    [...o.rows].sort((a,b)=>(a.place??1e9)-(b.place??1e9)).forEach(r => lines.push([r.place?r.place+(r.tie?'=':''):'', r.d.no, r.d.name, r.d.school, ...r.pts.map(p=>p==null?'':fmt(p)), r.complete?fmt(r.total):''].map(q).join(',')));
+    download(`${c.name.replace(/[^\w\- ]+/g,'')}.csv`, '﻿'+lines.join('\r\n'), 'text/csv'); };
+  $('demoReload').onclick = async () => { if (!(await askConfirm('Reload the demo?', 'Demo competitions go back to their starting point. Your own competitions are not touched.', 'Reload'))) return;
+    state.comps = state.comps.filter(c => !isDemo(c)); const ds = demoComps(); state.comps = ds.concat(state.comps); ds.forEach(finishDemo);
+    state.editId = ds[2].id; state.liveId = ds[1].id; save(); toast('Demo reloaded.'); state.tab='overview'; render(); pushDisplay(); };
+  $('demoRemove').onclick = async () => { if (!(await askConfirm('Remove demo competitions?', 'Only the “Demo —” competitions are removed. Your own competitions stay.', 'Remove'))) return;
+    state.comps = state.comps.filter(c => !isDemo(c)); if (!state.comps.length) state.comps.push(newComp('New competition'));
+    if (!getComp(state.editId)) state.editId = state.comps[0].id; if (!getComp(state.liveId)) state.liveId = state.comps[0].id; save(); toast('Demo competitions removed.'); render(); pushDisplay(); };
+  $('copyRes').onclick = async () => { const c=editComp(); const o=overall(c);
+    const lines=[['Place','Dancer No','Name','School',...c.judges,'Grid Total'].join('\t')];
+    [...o.rows].sort((a,b)=>(a.place??1e9)-(b.place??1e9)).forEach(r => lines.push([r.place?r.place+(r.tie?'=':''):'', r.d.no, r.d.name, r.d.school, ...r.pts.map(p=>p==null?'':fmt(p)), r.complete?fmt(r.total):''].join('\t')));
+    try { await navigator.clipboard.writeText(lines.join('\n')); toast('Results copied — paste into Excel.'); } catch(_){ toast('Copying isn’t allowed here.'); } };
+  $('wipe').onclick = async () => { if(!(await askConfirm('Start fresh?', 'This deletes ALL competitions, scores and settings. Download a backup first if unsure.', 'Delete everything'))) return; const c=newComp('New competition'); state={...defaultState(), comps:[c], editId:c.id, liveId:c.id}; save(); render(); pushDisplay(); };
+}
+function download(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500); }
+function shrinkImage(file, cb){
+  const rd = new FileReader();
+  rd.onload = () => { const img = new Image(); img.onload = () => { const m=400, k=Math.min(1, m/Math.max(img.width,img.height)); const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k); cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); cb(cv.toDataURL('image/png')); }; img.src = rd.result; };
+  rd.readAsDataURL(file);
+}
+
+// migrate / sanity
+if (NO_PHOTOS) { document.getElementById('ver').textContent += ' · no-photo edition'; document.title = 'Feis Live Results (no photos)'; }
+if (state.demoV !== 2) {   // swap the old single demo for the multi-competition demo
+  const old = state.comps.filter(c => c.demo || c.demoKey || /^Demo — /.test(c.name));
+  state.comps = state.comps.filter(c => !old.includes(c));
+  const ds = demoComps(); state.comps = ds.concat(state.comps);
+  if (!getComp(state.editId)) state.editId = ds[2].id;
+  if (!getComp(state.liveId)) state.liveId = ds[1].id;
+  state.demoV = 2; state.tab = 'overview';
+}
+state.comps.forEach(finishDemo);
+state.comps.forEach(c => { c.view = Object.assign(newView(), c.view||{}); c.scores = c.scores||{}; });
+if (!state.comps.length) state.comps.push(newComp('New competition'));
+if (!getComp(state.editId)) state.editId = state.comps[0].id;
+if (!getComp(state.liveId)) state.liveId = state.comps[0].id;
+render();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
