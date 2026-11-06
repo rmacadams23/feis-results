@@ -180,6 +180,16 @@
   .jcThumb.has { border-style:solid; } .jcThumb img { width:100%; height:100%; object-fit:cover; } .jcThumb.none { filter:grayscale(1); opacity:.6; }
   .jcTx { display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; } .jcTx small { color:var(--muted); } .jcTx b { font-size:16px; } .jcTx .st { align-self:flex-start; }
   .jcGo { color:var(--pri); font-weight:600; font-size:13px; white-space:nowrap; }
+  .annBtn { font-weight:700; border-width:1px; white-space:nowrap; }
+  .annBtn.an-grey { background:#f1f3f5; color:#9aa4ae; border-color:#e1e5ea; cursor:not-allowed; }
+  .annBtn.an-yellow { background:#fbbf24; color:#4a3000; border-color:#e0a815; }
+  .annBtn.an-yellow:hover { background:#f5b000; }
+  .annBtn.an-green { background:var(--pri); color:#fff; border-color:var(--pri); }
+  .annBtn.an-green:hover { background:var(--pri2); }
+  .annBtn.an-done { background:#ede7f6; color:#4a2a7a; border-color:#d9cdee; }
+  .annBtn.big2 { padding:12px 20px; font-size:16px; display:inline-flex; flex-direction:column; align-items:flex-start; gap:2px; }
+  .annBtn.big2 small { font-weight:400; font-size:12px; opacity:.85; }
+  .annRow { margin-top:14px; display:flex; justify-content:flex-end; }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -222,7 +232,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.15</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.16</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -826,6 +836,20 @@ function compStatus(c){
   if (ent.some(n=>n>0)) return [`Entering sheets · ${full}/${J} in`,'work'];
   return ['Waiting for sheets','grey'];
 }
+function announceBtn(c, big){
+  const D = live(c).length, J = c.judges.length;
+  const full = c.judges.filter((_,j) => D && judgeComplete(c,j) === D).length, vc = c.judges.filter((_,j) => isVerified(c,j)).length;
+  const done = compStatus(c)[1] === 'done';
+  let cls, label, tip, dis = '';
+  if (!D || full < J) { cls='an-grey'; label='📣 Announce scores'; tip=`${J-full} sheet${J-full>1?'s':''} still to enter`; dis='disabled'; }
+  else if (done) { cls='an-done'; label='📣 Announced ✓'; tip='Already announced — open the screen controls'; }
+  else if (vc < J) { cls='an-yellow'; label='📣 Announce scores'; tip=`All sheets in · ${J-vc} still to read back`; }
+  else { cls='an-green'; label='📣 Announce scores'; tip='All sheets in and verified'; }
+  return `<button class="annBtn ${cls} ${big?'big2':''}" data-announce="${c.id}" title="${tip}" ${dis}>${label}${big?`<small>${tip}</small>`:''}</button>`;
+}
+function bindAnnounce(){
+  main.querySelectorAll('[data-announce]').forEach(b => b.onclick = e => { e.stopPropagation(); state.liveId = b.dataset.announce; state.tab = 'show'; save(); render(); pushDisplay(); scrollTo(0,0); });
+}
 function renderOverview(){
   const counts = {};
   state.comps.forEach(c => { const k = compStatus(c)[1]; counts[k] = (counts[k]||0)+1; });
@@ -842,7 +866,7 @@ function renderOverview(){
           const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}</div></td>
         <td><span class="st ${k}">${st}</span></td>
-        <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button><button data-live="${c.id}">Show</button></div></td></tr>`; }).join('')}
+        <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
   </section>`;
@@ -852,6 +876,7 @@ function renderOverview(){
   const toShow = () => { state.tab='show'; save(); render(); scrollTo(0,0); };
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = toShow);
   main.querySelectorAll('tr.ovRow').forEach(tr => tr.onclick = e => { if (e.target.closest('button, label, input, a')) return; go(getComp(tr.dataset.row), -1); });
+  bindAnnounce();
   main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
   if (photosOn()) {
     main.querySelectorAll('[data-ph]').forEach(async el => { const [id,j]=el.dataset.ph.split(':'); const c=getComp(id); if (c && await getPhoto(c,+j)) el.classList.add('has'); });
@@ -972,10 +997,12 @@ function renderCompSheets(c){
       const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
       return `<button class="jCard" data-open="${j}"><div class="jcThumb" data-thumb="${j}">${photosOn() ? '📷' : (j+1)}</div>
         <div class="jcTx"><small>Adjudicator ${j+1}</small><b>${esc(n)}</b><span class="st ${k}">${st}</span></div><span class="jcGo">Open ▸</span></button>`; }).join('')}</div>
+    <div class="annRow">${announceBtn(c, true)}</div>
   </section>
   <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary">${summaryHTML(c)}</div></section>`;
   main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { state.judgeTab = +b.dataset.open; save(); renderScores(); scrollTo(0,0); });
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = () => { state.tab='show'; save(); render(); scrollTo(0,0); });
+  bindAnnounce();
   document.getElementById('toOv').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   if (photosOn()) main.querySelectorAll('[data-thumb]').forEach(async el => { const u = await getPhoto(c, +el.dataset.thumb); if (u && document.body.contains(el)) { el.innerHTML = `<img src="${u}" alt="">`; el.classList.add('has'); } else if (document.body.contains(el)) el.classList.add('none'); });
 }
@@ -989,7 +1016,7 @@ function renderScores(){
   const usePhotos = photosOn(), n0 = usePhotos ? 1 : 0;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}</h2></div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}</h2><div class="spacer"></div><span id="annSlot">${announceBtn(c)}</span></div>
     <div class="judgeTabs" id="jtabs"></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
@@ -1042,6 +1069,7 @@ function renderScores(){
   });
   if ($('addLate')) $('addLate').onclick = () => addDancerDialog(c);
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = () => { state.tab='show'; save(); render(); scrollTo(0,0); });
+  bindAnnounce();
   $('toOv2').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   $('toAll').onclick = () => { state.judgeTab = -1; save(); renderScores(); scrollTo(0,0); };
   if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
@@ -1078,6 +1106,7 @@ function refreshScoreCalc(){
     document.getElementById('rbOk').disabled = !(D && n === D && !missing);
   }
   document.getElementById('summary').innerHTML = summaryHTML(c);
+  const as = document.getElementById('annSlot'); if (as) { as.innerHTML = announceBtn(c); bindAnnounce(); }
 }
 async function loadPhoto(){
   const c = editComp(), j = state.judgeTab, pane = document.getElementById('sheetPane'); if (!pane) return;
