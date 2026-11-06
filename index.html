@@ -247,7 +247,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.3</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.4</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -901,13 +901,15 @@ document.getElementById('newComp').onclick = async () => {
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state.tab=b.dataset.tab; save(); render(); });
 document.getElementById('openDisp').onclick = () => (dispWin && !dispWin.closed) ? dispWin.focus() : openDisplay();
 
+const isPosted = c => isUS(c) && c.announce === 'post';   // results printed for the tables, not called to the stage
 function compStatus(c){
   const D=live(c).length, J=c.judges.length, v=c.view, L=resultList(c).length;
+  if (isPosted(c) && c.postedAt && D) return ['Results printed','done'];
   const ent=c.judges.map((_,j)=>judgeComplete(c,j)), full=ent.filter(n=>D && n===D).length;
   const vc=c.judges.filter((_,j)=>isVerified(c,j)).length;
   if (!D) return ['Setting up','grey'];
   if (v.screen==='results' && L && v.resStep>=L) return ['Announced','done'];
-  if (full===J && vc===J) return ['Ready to announce','ready'];
+  if (full===J && vc===J) return [isPosted(c) ? 'Ready to print' : 'Ready to announce','ready'];
   if (full===J) return [`Needs read-back · ${vc}/${J} checked`,'warn'];
   if (ent.some(n=>n>0)) return [`Entering sheets · ${full}/${J} in`,'work'];
   return ['Waiting for sheets','grey'];
@@ -921,10 +923,41 @@ function announceBtn(c, big){
   else if (done) { cls='an-done'; label='📣 Announced ✓'; tip='Already announced — open the screen controls'; }
   else if (vc < J) { cls='an-yellow'; label='📣 Announce scores'; tip=`All sheets in · ${J-vc} still to read back`; }
   else { cls='an-green'; label='📣 Announce scores'; tip='All sheets in and verified'; }
-  return `<button class="annBtn ${cls} ${big?'big2':''}" data-announce="${c.id}" title="${tip}" ${dis}>${label}${big?`<small>${tip}</small>`:''}</button>`;
+  if (isPosted(c)) { label = done ? '🖨 Printed ✓ — print again' : '🖨 Print results'; if (done) tip = 'Results sheet already printed'; }
+  return `<button class="annBtn ${cls} ${big?'big2':''}" data-announce="${c.id}" ${isPosted(c)?'data-post="1"':''} title="${tip}" ${dis}>${label}${big?`<small>${tip}</small>`:''}</button>`;
+}
+async function printResultsFor(cs){
+  const list = cs.filter(c => live(c).length && c.judges.every((_,j) => judgeComplete(c,j) === live(c).length));
+  if (!list.length) return toast('No finished competitions to print yet.');
+  const unv = list.filter(c => c.judges.some((_,j) => !isVerified(c,j)));
+  if (unv.length && !(await dialog({ title:'Some scores aren’t read back', text:`${unv.map(c => shortName(c)).join(', ')} — print anyway?`, ok:'Print anyway', danger:true }))) return;
+  printResults(list);
+}
+function printResults(cs){
+  const ev = state.settings.eventName, logo = state.settings.logoL;
+  const pages = cs.map(c => { const rl = resultList(c);
+    return `<section class="pg"><div class="hd">${logo ? `<img class="lg" src="${logo}">` : ''}<div><div class="ev">${esc(ev)}</div><h1>${esc(shortName(c))}</h1><div class="meta">Results${sessionOf(c) ? ' · ' + esc(sessionOf(c).name) : ''}</div></div></div>
+      <table><thead><tr><th>Place</th><th>No.</th><th>Dancer</th><th>School</th></tr></thead><tbody>
+      ${rl.map(r => `<tr class="p${r.place}"><td class="pl">${ord(r.place)}${r.tie?'=':''}</td><td class="no">${esc(r.d.no)}</td><td>${esc(r.d.name)}</td><td>${esc(r.d.school)}</td></tr>`).join('')}
+      </tbody></table><div class="ft">${live(c).length} competed · ${rl.length} placed</div></section>`; });
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Results</title><style>
+    @page { size: letter; margin: 0.6in; } body { margin:0; font-family: Arial, sans-serif; color:#111; }
+    .bar { padding:10px; background:#f4f6f9; border-bottom:1px solid #ddd; font-size:14px; } .bar button { font-size:15px; padding:6px 14px; margin-right:10px; } @media print { .bar { display:none; } }
+    @media screen { body { background:#e9ecef; } .pg { width:7.3in; margin:16px auto; padding:0.5in; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.15); } }
+    .pg { page-break-after: always; break-after: page; } .hd { display:flex; gap:14px; align-items:center; margin-bottom:18px; border-bottom:3px solid #3a1f63; padding-bottom:12px; } .lg { width:.9in; height:.9in; border-radius:50%; }
+    .ev { font-size:10pt; text-transform:uppercase; letter-spacing:.08em; color:#555; } h1 { font-size:24pt; margin:2px 0; } .meta { font-size:12pt; color:#444; }
+    table { border-collapse:collapse; width:100%; font-size:16pt; } th { text-align:left; font-size:11pt; color:#555; border-bottom:2px solid #999; padding:6px 8px; } td { border-bottom:1px solid #ccc; padding:10px 8px; }
+    td.pl { font-weight:bold; width:1in; } td.no { font-weight:bold; width:.9in; } tr.p1 td.pl { color:#9a7400; } .ft { margin-top:14px; font-size:10pt; color:#666; }
+  </style></head><body><div class="bar"><button onclick="print()">Print</button>${cs.length} results sheet${cs.length>1?'s':''}, one per page.</div>${pages.join('')}</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return toast('Results can’t open here — print them from your website or the laptop file.');
+  w.document.open(); w.document.write(html); w.document.close();
+  cs.forEach(c => { if (isPosted(c)) c.postedAt = Date.now(); }); save(); if (state.tab === 'overview') renderOverview();
 }
 function bindAnnounce(){
-  main.querySelectorAll('[data-announce]').forEach(b => b.onclick = e => { e.stopPropagation(); state.liveId = b.dataset.announce; state.tab = 'show'; save(); render(); pushDisplay(); scrollTo(0,0); });
+  main.querySelectorAll('[data-announce]').forEach(b => b.onclick = e => { e.stopPropagation();
+    if (b.dataset.post) return printResultsFor([getComp(b.dataset.announce)]);
+    state.liveId = b.dataset.announce; state.tab = 'show'; save(); render(); pushDisplay(); scrollTo(0,0); });
 }
 let ovDay = 'all';
 const sessions = () => state.settings.sessions || (state.settings.sessions = DEFAULT_SESSIONS());
@@ -952,7 +985,7 @@ function renderOverview(){
     ${photosOn() ? `<div class="hint ovPhotos"><label class="btnlike primaryLike">📷 Upload sheet photos<input type="file" accept="image/*" multiple id="ovCam" hidden></label>
       <span>Pick one photo or a whole stack, in any order. Printed sheets <b>file themselves</b> from their code; for hand-written sheets you choose the competition and adjudicator. Or tap the 📷 under a sheet number to photograph that one.</span></div>` : ''}
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
-    <div class="row" style="margin:0 0 8px;align-items:center"><label class="muted" style="flex-direction:row;align-items:center;gap:8px">Show <select id="ovDay">${filterOptionsHTML(ovDay)}</select></label><span class="muted">${ovComps().length} of ${state.comps.length}</span></div>
+    <div class="row" style="margin:0 0 8px;align-items:center"><label class="muted" style="flex-direction:row;align-items:center;gap:8px">Show <select id="ovDay">${filterOptionsHTML(ovDay)}</select></label><span class="muted">${ovComps().length} of ${state.comps.length}</span><div class="spacer"></div>${ovComps().some(isPosted) ? `<button id="ovPrintPosted">🖨 Print results — all finished “posted” competitions shown</button>` : ''}</div>
     <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
     ${ovComps().map(c => { const [st,k] = compStatus(c), D=live(c).length;
       return `<tr class="ovRow" data-row="${c.id}"><td><b>${esc(c.name)}</b>${sessionOf(c) ? `<span class="sesTag">${esc(sessionOf(c).name)}</span>` : ''}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}<span class="nm">${D} dancers</span></td>
@@ -961,11 +994,12 @@ function renderOverview(){
           const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
           const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}</div></td>
-        <td><span class="st ${k}">${st}</span> <span class="styleTag">${isUS(c) ? 'US' : 'Irish'}</span></td>
+        <td><span class="st ${k}">${st}</span> <span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
         <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
   </section>`;
+  const opp = document.getElementById('ovPrintPosted'); if (opp) opp.onclick = () => printResultsFor(ovComps().filter(isPosted));
   const od = document.getElementById('ovDay'); if (od) od.onchange = e => { ovDay = e.target.value; renderOverview(); };
   const go = (c, j) => { state.editId=c.id; state.judgeTab=j; state.tab='scores'; save(); render(); scrollTo(0,0); };
   main.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(getComp(b.dataset.go), +b.dataset.j));
@@ -1017,6 +1051,7 @@ function renderSetup(){
       <label>Rounds per sheet <select id="cR" ${c.entry==='place'?'disabled':''}>${opt([1,2,3], c.rounds)}</select></label>
       <label>Block <select id="cSes"><option value="">— none —</option>${sessions().map(x => `<option value="${x.id}" ${c.session===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
       <label>Results style <select id="cSc"><option value="irish" ${isUS(c)?'':'selected'}>Irish scoring</option><option value="us" ${isUS(c)?'selected':''}>US scoring</option></select></label>
+      ${isUS(c) ? `<label>Results given <select id="cAn"><option value="stage" ${isPosted(c)?'':'selected'}>On stage (shown on screen)</option><option value="post" ${isPosted(c)?'selected':''}>Posted (printed for the tables)</option></select></label>` : ''}
       <label>Places to announce <span style="display:flex;gap:6px"><select id="cPm"><option value="all" ${c.places<0?'selected':''}>Everyone</option><option value="half" ${c.places===0?'selected':''}>${isUS(c) ? `Automatic (top half, ${state.settings.usMin ?? 3}–${state.settings.usMax ?? 6})` : 'Top half'}</option><option value="n" ${c.places>0?'selected':''}>Top…</option></select><input id="cP" type="number" min="1" style="width:70px;${c.places>0?'':'display:none'}" value="${c.places>0?c.places:''}"></span></label>
     </div>
     <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
@@ -1044,7 +1079,8 @@ function renderSetup(){
   $('cE').onchange = e => { c.entry = e.target.value; save(); render(); pushDisplay(); };
   $('cR').onchange = e => { c.rounds = +e.target.value; save(); pushDisplay(); };
   $('cSes').onchange = e => { if (e.target.value) c.session = e.target.value; else delete c.session; save(); };
-  $('cSc').onchange = e => { c.scoring = e.target.value; save(); pushDisplay(); };
+  $('cSc').onchange = e => { c.scoring = e.target.value; save(); pushDisplay(); renderSetup(); };
+  if ($('cAn')) $('cAn').onchange = e => { c.announce = e.target.value; save(); };
   $('cPm').onchange = e => { const v=e.target.value; c.places = v==='all' ? -1 : v==='half' ? 0 : Math.max(1, parseInt($('cP').value)||Math.ceil(live(c).length/2)); $('cP').style.display = v==='n' ? '' : 'none'; if (v==='n') $('cP').value = c.places; save(); pushDisplay(); };
   $('cP').oninput = e => { c.places = Math.max(1, parseInt(e.target.value)||1); save(); pushDisplay(); };
   main.querySelectorAll('[data-judge]').forEach(inp => inp.oninput = () => { c.judges[+inp.dataset.judge] = inp.value; save(); pushDisplay(); });
@@ -1262,6 +1298,7 @@ function renderShow(){
     <div class="showgrid">
       <div>
         <label class="muted" style="display:block;margin-bottom:8px">Results style <select id="scoreMode"><option value="irish">Irish scoring — score grid, then results with totals</option><option value="us">US scoring — call numbers to stage, then last → first, no scores</option></select></label>
+        <div id="postNote"></div>
         <div class="screens">
           <button data-screen="title">Title</button><button data-screen="grid">Score grid</button>
           <button data-screen="results">Results</button><button data-screen="blank">Holding screen</button>
@@ -1297,6 +1334,7 @@ function updateShowCtl(){
   const v = c.view, D=live(c).length, J=c.judges.length, L=resultList(c).length;
   main.querySelectorAll('[data-screen]').forEach(b => { b.classList.toggle('on', b.dataset.screen===v.screen); if (b.dataset.screen==='grid') b.style.display = isUS(c) ? 'none' : ''; });
   const sm = document.getElementById('scoreMode'); if (sm) sm.value = isUS(c) ? 'us' : 'irish';
+  const pn = document.getElementById('postNote'); if (pn) { pn.innerHTML = isPosted(c) ? `<div class="hint" style="margin-bottom:8px">This competition’s results are <b>posted</b>, not given on stage. <button class="mini" id="pnPrint">🖨 Print results sheet</button></div>` : ''; const pb = document.getElementById('pnPrint'); if (pb) pb.onclick = () => printResultsFor([c]); }
   const ctl = document.getElementById('screenCtl');
   if (isUS(c) && v.screen==='results'){
     const cs = Math.min(v.callStep||0, L), k = Math.min(v.resStep, L);
@@ -1651,6 +1689,7 @@ function generateComps(reg){
       c.rounds = e.rounds.length; c.roundNames = e.rounds.slice(); c.places = -1;
       c.scoring = e.day === 'Sat' ? 'irish' : 'us';   // Saturday championships awarded on stage with the Irish grid; Sunday US style
       c.places = c.scoring === 'us' ? 0 : -1;          // Irish: everyone on the grid; US: top half, 3–6 (Settings)
+      c.announce = /-(lj|sj|sgj|tj|hp)$/.test(e.key) ? 'post' : 'stage';   // solos posted on the tables; awards & premiere prizes on stage
       c.dancers = lu.order.map(d => ({ id: uid(), rid: d.id, no: String(d.no), name: d.name, school: schoolOf(reg, d) }));
       made.push(c);
     });
@@ -1817,12 +1856,12 @@ const sortedGen = () => { const sIdx = c => { const i = sessions().findIndex(x =
 function genSummaryHTML(comps){
   const byDay = d => sortedGen().filter(c => c.gen.day === d);
   const sesSel = c => `<select data-cses="${c.id}"><option value="">—</option>${sessions().filter(x => x.day === c.gen.day).map(x => `<option value="${x.id}" ${c.session===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`;
-  const row = c => { const n = live(c).length; return `<tr><td>${esc(c.name)}</td><td>${sesSel(c)}</td><td class="num">${n}${n < 6 ? ' <span class="pill tie">under 6</span>' : ''}</td><td class="num">${c.judges.length}</td>
+  const row = c => { const n = live(c).length; return `<tr><td>${esc(c.name)}</td><td>${sesSel(c)}</td><td class="num">${n}${n < 6 ? ' <span class="pill tie">under 6</span>' : ''}</td><td class="num">${c.judges.length}</td><td><span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
     <td>${c.gen.clashes ? `<span class="warn">${c.gen.clashes} same-school pair${c.gen.clashes>1?'s':''} unavoidable</span>` : '<span class="muted">✓ schools apart</span>'}</td>
     <td class="num"><button class="mini" data-lu="${c.id}">Line-up</button> <button class="mini" data-redraw="${c.id}">↻ Re-draw</button></td></tr>`; };
   return ['Sat','Sun'].map(d => { const cs = byDay(d); if (!cs.length) return '';
     return `<h3 class="dayH">${d === 'Sat' ? 'Saturday, November 21' : 'Sunday, November 22'} <span class="muted">— ${cs.length} competitions</span></h3>
-      <div class="tblwrap"><table class="tbl"><thead><tr><th>Competition</th><th>Block</th><th class="num">Dancers</th><th class="num">Adj.</th><th>Line-up</th><th></th></tr></thead><tbody>${cs.map(row).join('')}</tbody></table></div>`; }).join('');
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Competition</th><th>Block</th><th class="num">Dancers</th><th class="num">Adj.</th><th>Results</th><th>Line-up</th><th></th></tr></thead><tbody>${cs.map(row).join('')}</tbody></table></div>`; }).join('');
 }
 function bandRowHTML(reg, e, n){
   const ages = regAges(reg, e.key), starts = new Set(bandsOf(reg, e.key).map(b => b.from)), bands = bandsOf(reg, e.key);
@@ -1882,6 +1921,7 @@ if (state.demoV !== 2) {   // swap the old single demo for the multi-competition
   state.demoV = 2; state.tab = 'overview';
 }
 state.comps.forEach(finishDemo);
+if (!state.postV) { state.comps.forEach(c => { if (c.gen && !c.announce) c.announce = /-(lj|sj|sgj|tj|hp)$/.test(c.gen.key) ? 'post' : 'stage'; }); state.postV = true; }
 if (!state.styleV2) { state.comps.forEach(c => { if (c.gen) { c.scoring = c.gen.day === 'Sat' ? 'irish' : 'us'; c.places = c.scoring === 'us' ? 0 : -1; } }); state.styleV2 = true; }
 state.comps.forEach(c => { c.view = Object.assign(newView(), c.view||{}); c.scores = c.scores||{}; });
 if (!state.comps.length) state.comps.push(newComp('New competition'));
