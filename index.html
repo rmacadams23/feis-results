@@ -106,6 +106,22 @@
   .imgView { flex:1; overflow:auto; background:#111; }
   .imgView img { max-width:none; width:100%; display:block; }
   @media (max-width:760px){ .rbBody { grid-template-columns:1fr; } .rbPhoto { max-height:38vh; } }
+  .entryGrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:20px; align-items:start; }
+  .sheetPane { position:sticky; top:76px; }
+  .sheetImg { max-height:calc(100vh - 150px); overflow:auto; border:1px solid var(--line); border-radius:8px; background:#f1f3f5; }
+  .sheetImg img { width:100%; display:block; }
+  .sheetEmpty { display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; border:2px dashed #c9d1da; border-radius:10px; padding:30px 18px; cursor:pointer; background:#fafbfc; }
+  .sheetEmpty:hover { border-color:var(--pri); }
+  .primaryLike { background:var(--pri); color:#fff; border-color:var(--pri); margin-top:6px; }
+  .stepHead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .step { width:22px; height:22px; border-radius:50%; background:var(--pri); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .rbFoot { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
+  .entryGrid.noPhotos { grid-template-columns:minmax(0,900px); }
+  .entryPane.rbOn { background:#fbfdfc; }
+  tr.ticked td { background:#eaf7ef; }
+  .tick { width:20px; height:20px; }
+  @media (max-width:1000px){ .entryGrid { grid-template-columns:1fr; } .sheetPane { position:static; } .sheetImg { max-height:45vh; } }
+  @media (max-width:760px){ header.bar { position:static; } .sheetPane { position:sticky; top:0; z-index:4; background:#fff; padding-bottom:6px; } .sheetImg { max-height:30vh; } .sheetEmpty { padding:18px 12px; } }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -147,7 +163,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span class="muted" style="font-size:11px;font-weight:400">v1.3</span></div>
+  <div class="brand">☘ Feis Live Results <span class="muted" style="font-size:11px;font-weight:400">v1.4</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -644,38 +660,50 @@ function renderSetup(){
 function resetView(c){ const f=c.view.flash||0; c.view = newView(); c.view.flash=f; }
 
 function ensureScore(c,j,id){ c.scores[j] = c.scores[j] || {}; return c.scores[j][id] = c.scores[j][id] || { r:[], place:'' }; }
+let rb = { key:null, on:false, ticks:new Set() };   // read-back state for the adjudicator on screen
+function rbFor(c, j){ const k = c.id+':'+j; if (rb.key !== k) rb = { key:k, on:false, ticks:new Set() }; return rb; }
 function renderScores(){
   const c = editComp(); if (!c) return renderSetup();
   if (state.judgeTab >= c.judges.length) state.judgeTab = 0;
   const j = state.judgeTab, sc = c.scores[j] || {};
   const isPlace = c.entry==='place';
   const rounds = isPlace ? 0 : c.rounds;
+  const R = rbFor(c, j);
+  const usePhotos = state.settings.photos !== false, n0 = usePhotos ? 1 : 0;
   main.innerHTML = `
   <section class="card">
-    <h2>Enter score sheets <span class="muted">— pick the adjudicator, then type down the column. <kbd>Enter</kbd> moves to the next dancer.</span></h2>
+    <h2>Enter score sheets <span class="muted">— pick the adjudicator${usePhotos?', photograph the sheet, then type the marks beside it':', then type the marks'}.</span></h2>
     <div class="judgeTabs" id="jtabs"></div>
-    <div class="sheetBar">
-      <div class="photoSlot" id="photoSlot">No photo</div>
-      <label class="btnlike">📷 <span id="photoLbl">Photo of sheet</span><input type="file" accept="image/*" capture="environment" id="photoIn" hidden></label>
-      <button id="rbBtn" class="primary">✔ Read back &amp; verify</button>
-      <span id="verState" class="vstate"></span>
-    </div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
-    <table class="tbl scores" style="max-width:900px"><thead><tr><th style="width:90px">Dancer</th><th class="hide-m">Name</th>
-      ${isPlace ? '<th class="num" style="width:110px">Placing</th>' : Array.from({length:rounds},(_,i)=>`<th class="num" style="width:110px">${rounds>1?'Round '+(i+1):'Raw mark'}</th>`).join('') + (rounds>1?'<th class="num">Raw total</th>':'')}
-      <th class="num">Place</th><th class="num">Irish pts</th></tr></thead><tbody>
-    ${c.dancers.map(d => { const s = sc[d.id] || {r:[],place:''};
-      return `<tr><td><b>${esc(d.no)}</b><span class="nm">${esc(d.name)}</span></td><td class="hide-m">${esc(d.name)}</td>
-      ${isPlace ? `<td class="num"><input class="w-n" inputmode="numeric" data-sid="${d.id}" data-col="p" value="${esc(s.place)}"></td>`
-               : Array.from({length:rounds},(_,i)=>`<td class="num"><input class="w-n" inputmode="decimal" data-sid="${d.id}" data-col="${i}" value="${esc(s.r?.[i] ?? '')}"></td>`).join('') + (rounds>1?`<td class="num" id="t_${d.id}"></td>`:'')}
-      <td class="num" id="k_${d.id}"></td><td class="num" id="p_${d.id}"></td></tr>`; }).join('')}
-    </tbody></table>
+    <div class="entryGrid ${usePhotos?'':'noPhotos'}">
+      ${usePhotos ? '<div class="sheetPane" id="sheetPane"></div>' : ''}
+      <div class="entryPane ${R.on?'rbOn':''}">
+        <div class="stepHead"><span class="step">${R.on?n0+2:n0+1}</span><b>${R.on ? 'Read back' : 'Type the marks'}</b>
+          <span id="verState" class="vstate"></span></div>
+        ${R.on ? `<div class="hint">One person reads each dancer number and mark aloud <b>from the paper sheet</b>; the other ticks the row if it matches. If one is wrong, just fix it here — that row un-ticks so it gets read again.</div>`
+               : `<div class="muted" style="margin-bottom:6px"><kbd>Enter</kbd> moves to the next dancer.</div>`}
+        <table class="tbl scores"><thead><tr>${R.on?'<th style="width:36px">✓</th>':''}<th style="width:90px">Dancer</th><th class="hide-m">Name</th>
+          ${isPlace ? '<th class="num" style="width:100px">Placing</th>' : Array.from({length:rounds},(_,i)=>`<th class="num" style="width:100px">${rounds>1?'Round '+(i+1):'Raw mark'}</th>`).join('') + (rounds>1?'<th class="num">Total</th>':'')}
+          <th class="num">Place</th><th class="num">Irish pts</th></tr></thead><tbody>
+        ${c.dancers.map(d => { const s = sc[d.id] || {r:[],place:''};
+          return `<tr data-row="${d.id}">${R.on?`<td><input type="checkbox" class="tick" data-tick="${d.id}" ${R.ticks.has(d.id)?'checked':''}></td>`:''}<td><b>${esc(d.no)}</b><span class="nm">${esc(d.name)}</span></td><td class="hide-m">${esc(d.name)}</td>
+          ${isPlace ? `<td class="num"><input class="w-n" inputmode="numeric" data-sid="${d.id}" data-col="p" value="${esc(s.place)}"></td>`
+                   : Array.from({length:rounds},(_,i)=>`<td class="num"><input class="w-n" inputmode="decimal" data-sid="${d.id}" data-col="${i}" value="${esc(s.r?.[i] ?? '')}"></td>`).join('') + (rounds>1?`<td class="num" id="t_${d.id}"></td>`:'')}
+          <td class="num" id="k_${d.id}"></td><td class="num" id="p_${d.id}"></td></tr>`; }).join('')}
+        </tbody></table>
+        ${R.on ? `<div class="rbFoot"><input id="rbBy" placeholder="Checked by (initials)" style="width:170px" value="${esc(state.lastChecker||'')}">
+            <span class="progress" id="rbCount"></span><div class="spacer"></div>
+            <button id="rbCancel">Stop read-back</button><button id="rbOk" class="primary" disabled>All match — mark verified</button></div>`
+               : `<div class="rbFoot"><div class="spacer"></div><button id="rbStart" class="primary" ${c.dancers.length?'':'disabled'}>✔ Start read-back</button></div>`}
+      </div>
+    </div>
   </section>
   <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary"></div></section>`;
   main.querySelectorAll('input[data-sid]').forEach(inp => {
     inp.addEventListener('input', () => {
       const s = ensureScore(c, j, inp.dataset.sid);
       if (inp.dataset.col==='p') s.place = inp.value; else s.r[+inp.dataset.col] = inp.value;
+      if (R.on && R.ticks.delete(inp.dataset.sid)) { const t = main.querySelector(`[data-tick="${inp.dataset.sid}"]`); if (t) t.checked = false; }
       save(); refreshScoreCalc(); if (c.id===state.liveId) pushDisplay();
     });
     inp.addEventListener('keydown', e => {
@@ -687,67 +715,62 @@ function renderScores(){
       else if (e.key==='Enter' && inp.dataset.col!=='p' && +inp.dataset.col < rounds-1) { const nx = main.querySelector(`input[data-col="${+inp.dataset.col+1}"]`); nx && (nx.focus(), nx.select()); }
     });
   });
-  document.getElementById('photoIn').onchange = async e => {
-    const f = e.target.files[0]; if (!f) return;
-    try { const url = await shrinkPhoto(f, 1800, 0.72); await PhotoDB.set(photoKey(c, j), url); toast('Sheet photo saved.'); loadPhoto(); }
-    catch(_) { toast('Could not save the photo on this device.'); }
-    e.target.value = '';
+  main.querySelectorAll('[data-tick]').forEach(cb => cb.onchange = () => { cb.checked ? R.ticks.add(cb.dataset.tick) : R.ticks.delete(cb.dataset.tick); refreshScoreCalc(); });
+  const $ = id => document.getElementById(id);
+  if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
+  if ($('rbCancel')) $('rbCancel').onclick = () => { R.on = false; renderScores(); };
+  if ($('rbOk')) $('rbOk').onclick = () => {
+    const by = $('rbBy').value.trim(); state.lastChecker = by;
+    c.verified = c.verified || {}; c.verified[j] = { sig: sigOf(c, j), by, at: Date.now() };
+    R.on = false; save(); renderScores(); toast(`Adjudicator ${j+1} verified.`);
   };
-  document.getElementById('rbBtn').onclick = () => openReadBack(c, j);
   loadPhoto();
   refreshScoreCalc();
-  const first = main.querySelector('input[data-sid]'); if (first && matchMedia('(min-width: 761px)').matches) first.focus();
+  const first = main.querySelector('input[data-sid]'); if (first && !R.on && matchMedia('(min-width: 761px)').matches) first.focus();
 }
 function refreshScoreCalc(){
-  const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = c.dancers.length;
+  const c = editComp(), j = state.judgeTab, res = judgeResults(c, j), D = c.dancers.length, R = rbFor(c, j);
   document.getElementById('jtabs').innerHTML = c.judges.map((n,i) => { const done = judgeComplete(c,i);
     const ver = isVerified(c,i);
     return `<button data-j="${i}" class="${i===j?'on':''}">Adjudicator ${i+1}: ${esc(n)}<small>${done}/${D} entered · <span class="${ver?'vok':'vno'}">${ver?'verified ✓':'not verified'}</span></small></button>`; }).join('');
   const vs = document.getElementById('verState'), vv = c.verified?.[j];
   if (isVerified(c,j)) { vs.className='vstate ok'; vs.textContent = `Verified ✓${vv.by ? ' by '+vv.by : ''} at ${new Date(vv.at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`; }
-  else { vs.className='vstate no'; vs.textContent = vv ? 'Scores changed since read-back — check again' : 'Not read back yet'; }
+  else { vs.className='vstate no'; vs.textContent = vv ? 'Changed since read-back — check again' : 'Not read back yet'; }
   document.querySelectorAll('#jtabs button').forEach(b => b.onclick = () => { state.judgeTab=+b.dataset.j; save(); renderScores(); });
   c.dancers.forEach(d => {
     const r = res[d.id], t = document.getElementById('t_'+d.id), k = document.getElementById('k_'+d.id), p = document.getElementById('p_'+d.id);
     if (t) t.textContent = r.total==null ? '' : fmt(r.total);
     if (k) k.innerHTML = r.rank==null ? '' : ord(r.rank) + (r.tie ? ' <span class="pill tie">tie</span>' : '');
     if (p) p.innerHTML = r.pts==null ? '' : `<b>${fmt(r.pts)}</b>`;
+    const row = main.querySelector(`tr[data-row="${d.id}"]`); if (row) row.classList.toggle('ticked', R.on && R.ticks.has(d.id));
   });
   main.querySelectorAll('input[data-sid]').forEach(inp => { const v=inp.value.trim(); inp.classList.toggle('bad', v!=='' && (isNaN(Number(v)) || (inp.dataset.col==='p' && !(Number.isInteger(Number(v)) && Number(v)>0)))); });
+  if (R.on) {
+    const missing = c.dancers.filter(d => !entryText(c, j, d)).length, n = c.dancers.filter(d => R.ticks.has(d.id)).length;
+    document.getElementById('rbCount').innerHTML = `${n} of ${D} checked` + (missing ? ` · <span class="bad-t">${missing} missing</span>` : '');
+    document.getElementById('rbOk').disabled = !(D && n === D && !missing);
+  }
   document.getElementById('summary').innerHTML = summaryHTML(c);
 }
 async function loadPhoto(){
-  const c = editComp(), j = state.judgeTab, slot = document.getElementById('photoSlot'); if (!slot) return;
+  const c = editComp(), j = state.judgeTab, pane = document.getElementById('sheetPane'); if (!pane) return;
   const url = await getPhoto(c, j);
-  if (state.judgeTab !== j || editComp() !== c) return;
-  slot.innerHTML = url ? `<img src="${url}" alt="Sheet photo">` : 'No photo';
-  document.getElementById('photoLbl').textContent = url ? 'Retake photo' : 'Photo of sheet';
-  slot.onclick = () => url && showImage(url, `Adjudicator ${j+1}: ${c.judges[j]} — score sheet`);
-}
-async function openReadBack(c, j){
-  const url = await getPhoto(c, j);
-  const ov = document.createElement('div'); ov.className = 'full';
-  const rows = c.dancers.map(d => { const t = entryText(c, j, d);
-    return `<label class="rbRow"><input type="checkbox" ${t?'':'disabled'}><span class="no">${esc(d.no)}</span><span class="muted">${esc(d.name)}</span><span class="val ${t?'':'missing'}">${t ? esc(t) : 'missing'}</span></label>`; }).join('');
-  const missing = c.dancers.filter(d => !entryText(c, j, d)).length;
-  ov.innerHTML = `<header><h3>Read back — Adjudicator ${j+1}: ${esc(c.judges[j])}</h3><button id="rbClose">Close</button></header>
-    <div class="rbBody ${url?'':'nophoto'}">
-      ${url ? `<div class="rbPhoto"><img src="${url}" alt="Sheet photo"></div>` : ''}
-      <div><div class="rbHelp">One person reads each dancer number and mark aloud <b>from the paper sheet</b>; the other ticks it here if it matches. If anything doesn't match, close this, fix the score, and read back again.</div>
-        ${missing ? `<div class="warn" style="margin-bottom:8px"><b>${missing} score${missing>1?'s':''} missing</b> — enter ${missing>1?'them':'it'} before verifying.</div>` : ''}
-        ${rows || '<div class="muted">No dancers.</div>'}</div>
-    </div>
-    <footer><input id="rbBy" placeholder="Checked by (initials)" style="width:180px" value="${esc(state.lastChecker||'')}"><span class="progress" id="rbCount"></span><div class="spacer"></div>
-      <button id="rbOk" class="primary" disabled>All match — mark verified</button></footer>`;
-  document.body.appendChild(ov);
-  const boxes = [...ov.querySelectorAll('.rbRow input')], okBtn = ov.querySelector('#rbOk');
-  const upd = () => { const n = boxes.filter(b => b.checked).length; boxes.forEach(b => b.closest('.rbRow').classList.toggle('done', b.checked));
-    ov.querySelector('#rbCount').textContent = `${n} of ${c.dancers.length} checked`; okBtn.disabled = !(n === c.dancers.length && !missing && c.dancers.length); };
-  boxes.forEach(b => b.onchange = upd); upd();
-  ov.querySelector('#rbClose').onclick = () => ov.remove();
-  okBtn.onclick = () => { const by = ov.querySelector('#rbBy').value.trim(); state.lastChecker = by;
-    c.verified = c.verified || {}; c.verified[j] = { sig: sigOf(c, j), by, at: Date.now() };
-    save(); ov.remove(); refreshScoreCalc(); toast(`Adjudicator ${j+1} verified.`); };
+  if (state.judgeTab !== j || editComp() !== c || !document.body.contains(pane)) return;
+  const fileIn = `<input type="file" accept="image/*" capture="environment" id="photoIn" hidden>`;
+  pane.innerHTML = url
+    ? `<div class="stepHead"><span class="step">1</span><b>Score sheet</b><div class="spacer"></div>
+         <button id="photoBig">⤢ Enlarge</button><label class="btnlike">📷 Retake${fileIn}</label></div>
+       <div class="sheetImg"><img src="${url}" alt="Score sheet photo"></div>`
+    : `<div class="stepHead"><span class="step">1</span><b>Score sheet</b></div>
+       <label class="sheetEmpty">${fileIn}<div style="font-size:34px">📷</div><b>Take a photo of Adjudicator ${j+1}'s sheet</b>
+         <span class="muted">It stays beside the boxes while you type and read back, and is kept on file on this device.</span>
+         <span class="btnlike primaryLike">Take or choose photo</span></label>`;
+  document.getElementById('photoIn').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { const u = await shrinkPhoto(f, 1800, 0.72); await PhotoDB.set(photoKey(c, j), u); toast('Sheet photo saved.'); loadPhoto(); }
+    catch(_) { toast('Could not save the photo on this device.'); }
+  };
+  const big = document.getElementById('photoBig'); if (big) big.onclick = () => showImage(url, `Adjudicator ${j+1}: ${c.judges[j]} — score sheet`);
 }
 function summaryHTML(c){
   const o = overall(c), N = placesN(c);
@@ -836,6 +859,8 @@ function renderSettings(){
       <label>Accent <input id="sAcc" type="color" value="${esc(s.acc)}"></label>
       <button id="sDefCol">Reset colors</button>
     </div>
+    <div class="row"><label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px;font-weight:600"><input type="checkbox" id="sPhotos" ${s.photos!==false?'checked':''} style="width:18px;height:18px"> Use photos of score sheets</label>
+      <span class="muted" style="padding-bottom:2px">Turn off if photographing sheets isn't allowed. Photos already taken stay on this device.</span></div>
     <div class="row">
       ${['L','R'].map(k => `<label>${k==='L'?'Left':'Right'} logo <div class="logoPrev">${s['logo'+k]?`<img src="${s['logo'+k]}">`:'none'}</div>
         <input type="file" accept="image/*" data-logo="${k}" style="max-width:200px"> ${s['logo'+k]?`<button data-rmlogo="${k}">Remove</button>`:''}</label>`).join('')}
@@ -860,6 +885,7 @@ function renderSettings(){
   $('sEv').oninput = e => { s.eventName=e.target.value; save(); pushDisplay(); };
   $('sBg').oninput = e => { s.bg=e.target.value; save(); pushDisplay(); };
   $('sAcc').oninput = e => { s.acc=e.target.value; save(); pushDisplay(); };
+  $('sPhotos').onchange = e => { s.photos = e.target.checked; save(); toast(s.photos ? 'Sheet photos turned on.' : 'Sheet photos turned off.'); };
   $('sDefCol').onclick = () => { s.bg=DEFAULT_BG; s.acc=DEFAULT_ACC; save(); renderSettings(); pushDisplay(); };
   main.querySelectorAll('[data-logo]').forEach(inp => inp.onchange = () => { const f=inp.files[0]; if(!f) return; shrinkImage(f, url => { s['logo'+inp.dataset.logo]=url; save(); renderSettings(); pushDisplay(); }); });
   main.querySelectorAll('[data-rmlogo]').forEach(b => b.onclick = () => { s['logo'+b.dataset.rmlogo]=''; save(); renderSettings(); pushDisplay(); });
