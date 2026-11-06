@@ -171,6 +171,14 @@
   .labOk { background:#e3f4ea; color:var(--pri2); border-radius:8px; padding:10px 12px; margin-bottom:10px; }
   .labOk small { color:var(--ink); }
   .printBox { border:1px solid var(--line); background:#fafbfc; border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+  tr.ovRow { cursor:pointer; } tr.ovRow:hover td { background:#f6f9fc; }
+  .jCards { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:10px; }
+  .jCard { display:flex; align-items:center; gap:12px; text-align:left; padding:10px; border-radius:10px; }
+  .jCard:hover { border-color:var(--pri); background:#f7fbf9; }
+  .jcThumb { width:64px; height:80px; flex:none; border-radius:6px; border:1px dashed #c9d1da; display:flex; align-items:center; justify-content:center; font-size:22px; color:#9aa4ae; overflow:hidden; background:#fafbfc; font-weight:700; }
+  .jcThumb.has { border-style:solid; } .jcThumb img { width:100%; height:100%; object-fit:cover; } .jcThumb.none { filter:grayscale(1); opacity:.6; }
+  .jcTx { display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; } .jcTx small { color:var(--muted); } .jcTx b { font-size:16px; } .jcTx .st { align-self:flex-start; }
+  .jcGo { color:var(--pri); font-weight:600; font-size:13px; white-space:nowrap; }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -213,7 +221,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.12</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.13</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -796,7 +804,7 @@ function render(){
   ({ overview:renderOverview, setup:renderSetup, scores:renderScores, show:renderShow, settings:renderSettings }[state.tab] || renderOverview)();
 }
 
-document.getElementById('editSel').onchange = e => { state.editId = e.target.value; state.judgeTab=0; save(); render(); };
+document.getElementById('editSel').onchange = e => { state.editId = e.target.value; state.judgeTab=-1; save(); render(); };
 document.getElementById('newComp').onclick = async () => {
   const name = await askText('New competition', 'e.g. Under 11 Open Championship'); if (!name) return;
   const c = newComp(name.trim()); const prev = editComp();
@@ -826,20 +834,21 @@ function renderOverview(){
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
     <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
     ${state.comps.map(c => { const [st,k] = compStatus(c), D=live(c).length;
-      return `<tr><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <span class="pill onair">ON SCREEN</span>':''}<span class="nm">${D} dancers</span></td>
+      return `<tr class="ovRow" data-row="${c.id}"><td><b>${esc(c.name)}</b>${c.id===state.liveId?' <span class="pill onair">ON SCREEN</span>':''}<span class="nm">${D} dancers</span></td>
         <td class="num hide-m">${D}</td>
         <td><div class="chips">${c.judges.map((n,j)=>{ const e=judgeComplete(c,j), ver=isVerified(c,j);
           const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
           const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}</div></td>
         <td><span class="st ${k}">${st}</span></td>
-        <td class="num"><div class="btns"><button data-enter="${c.id}">Enter scores</button><button data-live="${c.id}">Show</button></div></td></tr>`; }).join('')}
+        <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button><button data-live="${c.id}">Show</button></div></td></tr>`; }).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
   </section>`;
   const go = (c, j) => { state.editId=c.id; state.judgeTab=j; state.tab='scores'; save(); render(); scrollTo(0,0); };
   main.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(getComp(b.dataset.go), +b.dataset.j));
-  main.querySelectorAll('[data-enter]').forEach(b => b.onclick = () => { const c=getComp(b.dataset.enter); const j=c.judges.findIndex((_,j)=>!isVerified(c,j)); go(c, j<0?0:j); });
+  main.querySelectorAll('[data-enter]').forEach(b => b.onclick = () => go(getComp(b.dataset.enter), -1));
+  main.querySelectorAll('tr.ovRow').forEach(tr => tr.onclick = e => { if (e.target.closest('button, label, input, a')) return; go(getComp(tr.dataset.row), -1); });
   main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
   if (photosOn()) {
     main.querySelectorAll('[data-ph]').forEach(async el => { const [id,j]=el.dataset.ph.split(':'); const c=getComp(id); if (c && await getPhoto(c,+j)) el.classList.add('has'); });
@@ -950,9 +959,24 @@ function addDancerDialog(c){
 }
 let rb = { key:null, on:false, ticks:new Set() };   // read-back state for the adjudicator on screen
 function rbFor(c, j){ const k = c.id+':'+j; if (rb.key !== k) rb = { key:k, on:false, ticks:new Set() }; return rb; }
+function renderCompSheets(c){
+  const D = live(c).length;
+  main.innerHTML = `
+  <section class="card">
+    <h2>${esc(c.name)} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2>
+    ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
+    <div class="jCards">${c.judges.map((n,j) => { const e = judgeComplete(c,j), ver = isVerified(c,j), vv = c.verified?.[j];
+      const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
+      return `<button class="jCard" data-open="${j}"><div class="jcThumb" data-thumb="${j}">${photosOn() ? '📷' : (j+1)}</div>
+        <div class="jcTx"><small>Adjudicator ${j+1}</small><b>${esc(n)}</b><span class="st ${k}">${st}</span></div><span class="jcGo">Open ▸</span></button>`; }).join('')}</div>
+  </section>
+  <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary">${summaryHTML(c)}</div></section>`;
+  main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { state.judgeTab = +b.dataset.open; save(); renderScores(); scrollTo(0,0); });
+  if (photosOn()) main.querySelectorAll('[data-thumb]').forEach(async el => { const u = await getPhoto(c, +el.dataset.thumb); if (u && document.body.contains(el)) { el.innerHTML = `<img src="${u}" alt="">`; el.classList.add('has'); } else if (document.body.contains(el)) el.classList.add('none'); });
+}
 function renderScores(){
   const c = editComp(); if (!c) return renderSetup();
-  if (state.judgeTab >= c.judges.length) state.judgeTab = 0;
+  if (state.judgeTab == null || state.judgeTab < 0 || state.judgeTab >= c.judges.length) { state.judgeTab = -1; return renderCompSheets(c); }
   const j = state.judgeTab, sc = c.scores[j] || {};
   const isPlace = c.entry==='place';
   const rounds = isPlace ? 0 : c.rounds;
@@ -960,7 +984,7 @@ function renderScores(){
   const usePhotos = photosOn(), n0 = usePhotos ? 1 : 0;
   main.innerHTML = `
   <section class="card">
-    <h2>Enter score sheets <span class="muted">— pick the adjudicator${usePhotos?', photograph the sheet, then type the marks beside it':', then type the marks'}.</span></h2>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}</h2></div>
     <div class="judgeTabs" id="jtabs"></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
@@ -1012,6 +1036,7 @@ function renderScores(){
     d.dnd = !d.dnd; R.ticks.delete(d.id); save(); renderScores(); pushDisplay(); toast(d.dnd ? `${d.no} marked did not dance.` : `${d.no} put back in.`);
   });
   if ($('addLate')) $('addLate').onclick = () => addDancerDialog(c);
+  $('toAll').onclick = () => { state.judgeTab = -1; save(); renderScores(); scrollTo(0,0); };
   if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
   if ($('rbCancel')) $('rbCancel').onclick = () => { R.on = false; renderScores(); };
   if ($('rbOk')) $('rbOk').onclick = () => {
