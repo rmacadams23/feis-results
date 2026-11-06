@@ -221,7 +221,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.13</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.14</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -960,7 +960,7 @@ function renderCompSheets(c){
   const D = live(c).length;
   main.innerHTML = `
   <section class="card">
-    <h2>${esc(c.name)} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ Overview</button><h2 style="margin:0">${esc(c.name)} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="jCards">${c.judges.map((n,j) => { const e = judgeComplete(c,j), ver = isVerified(c,j), vv = c.verified?.[j];
       const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
@@ -969,6 +969,7 @@ function renderCompSheets(c){
   </section>
   <section class="card"><h2>All adjudicators <span class="muted">— Irish points and overall placing (only you see this)</span></h2><div id="summary">${summaryHTML(c)}</div></section>`;
   main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { state.judgeTab = +b.dataset.open; save(); renderScores(); scrollTo(0,0); });
+  document.getElementById('toOv').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   if (photosOn()) main.querySelectorAll('[data-thumb]').forEach(async el => { const u = await getPhoto(c, +el.dataset.thumb); if (u && document.body.contains(el)) { el.innerHTML = `<img src="${u}" alt="">`; el.classList.add('has'); } else if (document.body.contains(el)) el.classList.add('none'); });
 }
 function renderScores(){
@@ -981,7 +982,7 @@ function renderScores(){
   const usePhotos = photosOn(), n0 = usePhotos ? 1 : 0;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}</h2></div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}</h2></div>
     <div class="judgeTabs" id="jtabs"></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
@@ -1033,6 +1034,7 @@ function renderScores(){
     d.dnd = !d.dnd; R.ticks.delete(d.id); save(); renderScores(); pushDisplay(); toast(d.dnd ? `${d.no} marked did not dance.` : `${d.no} put back in.`);
   });
   if ($('addLate')) $('addLate').onclick = () => addDancerDialog(c);
+  $('toOv2').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   $('toAll').onclick = () => { state.judgeTab = -1; save(); renderScores(); scrollTo(0,0); };
   if ($('rbStart')) $('rbStart').onclick = () => { R.on = true; R.ticks = new Set(); renderScores(); };
   if ($('rbCancel')) $('rbCancel').onclick = () => { R.on = false; renderScores(); };
