@@ -220,6 +220,8 @@
   .rosN { margin-left:auto; background:#eef1f4; border-radius:10px; padding:1px 9px; font-size:12px; font-weight:700; }
   .rosTbl { margin:0; } .rosTbl small { color:var(--muted); }
   .schoolGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:8px; } .schoolCard { display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; padding:10px 12px; border-radius:8px; } .schoolCard:hover { border-color:var(--pri); background:#f3faf6; } .schoolCard span { font-size:12px; color:var(--pri2); }
+  .evTbl td { vertical-align:middle; } .evTbl input, .evTbl select { font-size:13px; padding:4px 6px; } .evTbl tr.off td { opacity:.5; } .evTbl small { display:block; }
+  .evTbl tr.dayRow td { background:#f3f0f8; font-weight:700; color:#4a2a7a; padding:6px; }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -262,7 +264,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.5</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v3.0</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -271,8 +273,7 @@
     <button data-tab="show">Show on screen</button>
     <span class="tabSep"></span>
     <button data-tab="registration">Registration</button>
-    <button data-tab="setup">Setup</button>
-    <button data-tab="settings">Settings &amp; backup</button>
+    <button data-tab="settings">Event setup</button>
   </nav>
   <div class="spacer"></div>
   <span id="dispStatus" class="status off">Display not open</span>
@@ -349,7 +350,7 @@ try { state = JSON.parse(localStorage.getItem(KEY)) || defaultState(); } catch(e
 let saveWarned = false;
 function save(){
   try { localStorage.setItem(KEY, JSON.stringify(state)); }
-  catch(e){ if(!saveWarned){ saveWarned=true; toast('Could not save — browser storage is full. Try smaller logo images.'); } }
+  catch(e){ if(!saveWarned){ saveWarned=true; toast('Could not save — browser storage is full. Try smaller logo images (Event setup → Event).'); } }
 }
 const getComp = id => state.comps.find(c => c.id===id);
 const editComp = () => getComp(state.editId) || state.comps[0];
@@ -614,7 +615,7 @@ function overall(c){
   });
   return { jr, rows, ranked };
 }
-// places: -1 = everyone, 0 = automatic, n = top n.  Automatic US = top half, at least usMin, at most usMax (Settings)
+// places: -1 = everyone, 0 = automatic, n = top n.  Automatic US = top half, at least usMin, at most usMax (Event setup)
 function usAutoPlaces(n){ const st = state.settings, lo = st.usMin ?? 3, hi = st.usMax ?? 6; return Math.min(n, Math.max(lo, Math.min(hi, Math.ceil(n/2)))); }
 const placesN = c => c.places>0 ? c.places : c.places<0 ? live(c).length : (isUS(c) ? usAutoPlaces(live(c).length) : Math.ceil(live(c).length/2));
 function resultList(c){ const N=placesN(c); return overall(c).ranked.filter(r => r.place<=N); }
@@ -899,7 +900,7 @@ const main = document.getElementById('main');
 function renderHeader(){
   const sel = document.getElementById('editSel');
   sel.innerHTML = state.comps.map(c => `<option value="${c.id}" ${c.id===state.editId?'selected':''}>${esc(c.name)}</option>`).join('');
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab===state.tab));
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab===state.tab || (state.tab==='setup' && b.dataset.tab==='registration')));
 }
 function render(){
   renderHeader();
@@ -911,7 +912,7 @@ document.getElementById('newComp').onclick = async () => {
   const name = await askText('New competition', 'e.g. Under 11 Open Championship'); if (!name) return;
   const c = newComp(name.trim()); const prev = editComp();
   if (prev){ c.judges = prev.judges.slice(); c.rounds = prev.rounds; c.entry = prev.entry; }
-  state.comps.push(c); state.editId = c.id; state.tab='setup'; save(); render();
+  state.comps.push(c); openDetails(c);
 };
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { state.tab=b.dataset.tab; save(); render(); });
 document.getElementById('openDisp').onclick = () => (dispWin && !dispWin.closed) ? dispWin.focus() : openDisplay();
@@ -1010,7 +1011,7 @@ function renderOverview(){
           const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}</div></td>
         <td><span class="st ${k}">${st}</span> <span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
-        <td class="num"><div class="btns"><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }).join('')}
+        <td class="num"><div class="btns"><button class="mini" data-details="${c.id}" title="Competition details">⚙</button><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
   </section>`;
@@ -1023,6 +1024,7 @@ function renderOverview(){
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = toShow);
   main.querySelectorAll('tr.ovRow').forEach(tr => tr.onclick = e => { if (e.target.closest('button, label, input, a')) return; go(getComp(tr.dataset.row), -1); });
   bindAnnounce();
+  main.querySelectorAll('[data-details]').forEach(b => b.onclick = e => { e.stopPropagation(); openDetails(getComp(b.dataset.details)); });
   main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
   if (photosOn()) {
     main.querySelectorAll('[data-ph]').forEach(async el => { const [id,j]=el.dataset.ph.split(':'); const c=getComp(id); if (c && await getPhoto(c,+j)) el.classList.add('has'); });
@@ -1053,11 +1055,13 @@ function renderOverview(){
     });
   }
 }
+function openDetails(c){ if (state.tab !== 'setup') state.prevTab = state.tab; state.editId = c.id; state.tab = 'setup'; save(); render(); scrollTo(0,0); }
 function renderSetup(){
   const c = editComp();
   if (!c){ main.innerHTML = `<div class="card">No competitions yet — click “+ New competition”.</div>`; return; }
   const opt = (vals, cur, lab=x=>x) => vals.map(v => `<option value="${v}" ${String(v)===String(cur)?'selected':''}>${lab(v)}</option>`).join('');
   main.innerHTML = `
+  <div class="stepHead" style="margin-bottom:10px"><button id="detBack">◂ Back</button><h2 style="margin:0">Competition details</h2><span class="muted">— settings for this one competition${c.gen ? ' (it started from its event in Event setup)' : ''}</span></div>
   <section class="card"><h2>Competition</h2>
     <div class="row">
       <label>Name <input id="cName" size="40" value="${esc(c.name)}"></label>
@@ -1089,6 +1093,7 @@ function renderSetup(){
     </details>
   </section>`;
   const $ = id => document.getElementById(id);
+  $('detBack').onclick = () => { state.tab = state.prevTab && state.prevTab !== 'setup' ? state.prevTab : 'registration'; save(); render(); scrollTo(0,0); };
   $('cName').oninput = e => { c.name = e.target.value; save(); renderHeader(); pushDisplay(); };
   $('cJ').onchange = e => { const n=+e.target.value; while (c.judges.length<n) c.judges.push('Adjudicator '+(c.judges.length+1)); c.judges.length=n; resetView(c); save(); render(); };
   $('cE').onchange = e => { c.entry = e.target.value; save(); render(); pushDisplay(); };
@@ -1155,8 +1160,8 @@ function renderCompSheets(c){
   const D = live(c).length;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ Overview</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
-    ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ Overview</button><button id="toDet" title="Competition details">⚙ Details</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
+    ${c.dancers.length ? '' : '<div class="hint">Add dancers in the competition’s ⚙ Details (or build competitions from Registration) first.</div>'}
     <div class="jCards">${c.judges.map((n,j) => { const e = judgeComplete(c,j), ver = isVerified(c,j), vv = c.verified?.[j];
       const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
       return `<button class="jCard" data-open="${j}"><div class="jcThumb" data-thumb="${j}">${photosOn() ? '📷' : (j+1)}</div>
@@ -1167,6 +1172,7 @@ function renderCompSheets(c){
   main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { state.judgeTab = +b.dataset.open; save(); renderScores(); scrollTo(0,0); });
   main.querySelectorAll('[data-onair]').forEach(b => b.onclick = () => { state.tab='show'; save(); render(); scrollTo(0,0); });
   bindAnnounce();
+  document.getElementById('toDet').onclick = () => openDetails(c);
   document.getElementById('toOv').onclick = () => { state.tab = 'overview'; save(); render(); scrollTo(0,0); };
   if (photosOn()) main.querySelectorAll('[data-thumb]').forEach(async el => { const u = await getPhoto(c, +el.dataset.thumb); if (u && document.body.contains(el)) { el.innerHTML = `<img src="${u}" alt="">`; el.classList.add('has'); } else if (document.body.contains(el)) el.classList.add('none'); });
 }
@@ -1182,7 +1188,7 @@ function renderScores(){
   <section class="card">
     <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back to the Overview">◂◂ Overview</button><button id="toAll">◂ All adjudicators</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Show on screen">ON SCREEN ▸</button>':''}</h2><div class="spacer"></div><span id="annSlot">${announceBtn(c)}</span></div>
     <div class="judgeTabs" id="jtabs"></div>
-    ${c.dancers.length ? '' : '<div class="hint">Add dancers on the Setup tab first.</div>'}
+    ${c.dancers.length ? '' : '<div class="hint">Add dancers in the competition’s ⚙ Details (or build competitions from Registration) first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
       ${usePhotos ? '<div class="sheetPane" id="sheetPane"></div>' : ''}
       <div class="entryPane ${R.on?'rbOn':''}">
@@ -1386,10 +1392,34 @@ function updateShowCtl(){
   document.getElementById('warn').innerHTML = warns.length ? `<div class="warn"><b>Check before revealing:</b><br>${warns.join('<br>')}</div>` : `<div class="pill ok">All scores entered and verified</div>`;
 }
 
+let esSub = 'event';
+function eventsTableHTML(){
+  const days = Object.keys(eventDates());
+  const counts = {}; (state.reg ? state.reg.dancers : []).forEach(d => d.events.forEach(k => counts[k] = (counts[k]||0) + 1));
+  const row = e => `<tr class="${e.offered === false ? 'off' : ''}">
+    <td><input type="checkbox" data-evf="${e.key}:offered" ${e.offered !== false ? 'checked' : ''} title="Offered"></td>
+    <td><input data-evf="${e.key}:label" value="${esc(e.label)}" style="min-width:210px">${e.custom ? `<small class="muted">matches “${esc(e.match||'')}”</small>` : ''}</td>
+    <td><select data-evf="${e.key}:day">${days.map(d => `<option value="${d}" ${e.day===d?'selected':''}>${dayLabel(d).split(',')[0]}</option>`).join('')}</select></td>
+    <td><select data-evf="${e.key}:judges">${[1,3,5].map(n => `<option ${+e.judges===n?'selected':''}>${n}</option>`).join('')}</select></td>
+    <td><input data-evf="${e.key}:rounds" value="${esc(e.rounds.join(', '))}" style="min-width:200px" title="Rounds in the order danced, separated by commas"></td>
+    <td><select data-evf="${e.key}:scoring"><option value="irish" ${e.scoring!=='us'?'selected':''}>Irish</option><option value="us" ${e.scoring==='us'?'selected':''}>US</option></select></td>
+    <td><select data-evf="${e.key}:announce" ${e.scoring==='us'?'':'disabled'}><option value="stage" ${e.announce!=='post'?'selected':''}>On stage</option><option value="post" ${e.announce==='post'?'selected':''}>Posted</option></select></td>
+    <td><select data-evf="${e.key}:places"><option value="all" ${e.places==='all'?'selected':''}>Everyone</option><option value="auto" ${e.places==='auto'?'selected':''}>${e.scoring==='us'?'Auto (US rule)':'Top half'}</option>${/^\d+$/.test(String(e.places)) ? `<option value="${e.places}" selected>Top ${e.places}</option>` : ''}<option value="n">Top…</option></select></td>
+    <td><input data-evf="${e.key}:minAge" type="number" min="0" style="width:56px" value="${e.minAge ?? ''}"></td>
+    <td><input data-evf="${e.key}:minGroup" type="number" min="1" style="width:56px" value="${e.minGroup ?? 6}"></td>
+    <td class="num">${counts[e.key] || '—'}</td>
+    <td>${e.custom ? `<button class="mini danger" data-evdel="${e.key}">Remove</button>` : ''}</td></tr>`;
+  return `<div class="tblwrap"><table class="tbl evTbl"><thead><tr><th title="Offered">✓</th><th>Event</th><th>Day</th><th>Adj.</th><th>Rounds (in order)</th><th>Results</th><th>Given</th><th>Placed</th><th>Min age</th><th>Min group</th><th class="num">Entries</th><th></th></tr></thead>
+    <tbody>${days.map(d => { const evs = EVENTS().filter(e => e.day === d); return evs.length ? `<tr class="dayRow"><td colspan="12">${dayLabel(d)}</td></tr>${evs.map(row).join('')}` : ''; }).join('')}</tbody></table></div>`;
+}
 function renderSettings(){
   const s = state.settings;
+  const tabs = [['event','Event'],['schedule','Days & blocks'],['events','Events offered'],['scoring','Adjudicators & scoring'],['backup','Backup & data']];
   main.innerHTML = `
-  <section class="card"><h2>Display look</h2>
+  <section class="card regHead"><div class="stepHead"><h2 style="margin:0">Event setup</h2><span class="muted">— decided before registrations come in; competitions built from registrations start from these</span></div></section>
+  <nav class="folderTabs">${tabs.map(([k,l]) => `<button data-es="${k}" class="${k===esSub?'on':''}">${l}</button>`).join('')}</nav>
+  <div class="card folder">
+  <section data-pane="event"><h3 class="fh">Event</h3>
     <div class="row">
       <label>Event name (top line on every screen) <input id="sEv" size="40" value="${esc(s.eventName)}"></label>
       <label>Background <input id="sBg" type="color" value="${esc(s.bg)}"></label>
@@ -1403,21 +1433,30 @@ function renderSettings(){
         <input type="file" accept="image/*" data-logo="${k}" style="max-width:200px"> ${s['logo'+k]?`<button data-rmlogo="${k}">Remove</button>`:''}</label>`).join('')}
     </div>
   </section>
-  <section class="card"><h2>Event schedule <span class="muted">— blocks you can put competitions into, then filter the Overview by</span></h2>
+  <section data-pane="schedule"><h3 class="fh">Days</h3>
+    <div class="row">${Object.entries(eventDates()).map(([k,v]) => `<label>${k === 'Sat' ? 'First day' : k === 'Sun' ? 'Second day' : k} <input type="date" data-date="${k}" value="${esc(v)}"></label>`).join('')}
+      <span class="muted" style="padding-bottom:6px">Ages are worked out on the day each event is danced (CRDM rule).</span></div>
+    <h3 class="fh" style="margin-top:14px">Blocks <span class="muted">— put competitions into these, then filter the Overview by them</span></h3>
     <div id="sesList">${sessions().map((x,i) => `<div class="row" style="align-items:center;margin-bottom:6px"><input data-sesname="${x.id}" value="${esc(x.name)}" style="min-width:220px"><select data-sesday="${x.id}"><option value="Sat" ${x.day==='Sat'?'selected':''}>Saturday</option><option value="Sun" ${x.day==='Sun'?'selected':''}>Sunday</option></select>
       <span class="muted">${state.comps.filter(c => c.session===x.id).length} competitions</span><button class="mini" data-sesup="${i}" ${i?'':'disabled'}>↑</button><button class="mini danger" data-sesdel="${x.id}">Remove</button></div>`).join('')}</div>
-    <div class="row"><button id="sesAdd">+ Add block</button><span class="muted" style="padding-bottom:6px">Assign competitions on the Registration tab (step “Competitions & line-ups”) or on each competition’s Setup tab.</span></div>
+    <div class="row"><button id="sesAdd">+ Add block</button><span class="muted" style="padding-bottom:6px">Assign competitions on Registration → Competitions & line-ups, or in a competition’s details.</span></div>
   </section>
-  <section class="card"><h2>US-style placings <span class="muted">— how many are placed (and called to the stage) when a US competition is on “Automatic”</span></h2>
+  <section data-pane="events"><h3 class="fh">Events offered <span class="muted">— the registration upload fills these; each competition starts from its event’s settings</span></h3>
+    ${eventsTableHTML()}
+    <div class="row" style="margin-top:10px"><button id="evAdd">+ Add event</button><button id="evApply">Apply results style &amp; placing to built competitions</button><button id="evReset" class="danger">Reset to the standard list</button></div>
+    <div class="muted">Changes to adjudicators and rounds apply when you (re)build competitions on the Registration tab. “Apply…” updates Irish/US, on stage/posted and placing on competitions already built, without touching scores.</div>
+  </section>
+  <section data-pane="scoring"><h3 class="fh">Adjudicator panel <span class="muted">— default names; 3-adjudicator events use all three, 1-adjudicator events use the first</span></h3>
+    <div class="row">${[0,1,2].map(i => `<label>Adjudicator ${i+1} <input data-pj="${i}" value="${esc(panel()[i]||'')}"></label>`).join('')}<button id="pjApply">Use these names on built competitions</button></div>
+    <h3 class="fh" style="margin-top:14px">US-style placings <span class="muted">— how many are placed (and called to the stage) when a US competition is on “Automatic”</span></h3>
     <div class="row"><label>Top half, but at least <input id="usMin" type="number" min="1" style="width:70px" value="${s.usMin ?? 3}"></label><label>and at most <input id="usMax" type="number" min="1" style="width:70px" value="${s.usMax ?? 6}"></label>
       <span class="muted" style="padding-bottom:6px">e.g. 5 dancers → ${usAutoPlaces(5)} placed · 9 → ${usAutoPlaces(9)} · 15 → ${usAutoPlaces(15)}. Ties at the cut-off are all placed.</span></div>
-  </section>
-  <section class="card"><h2>Irish points table</h2>
+  <h3 class="fh" style="margin-top:14px">Irish points table</h3>
     <p class="muted">Points for 1st, 2nd, 3rd… Tied dancers share the average of the places they occupy (e.g. tied for 3rd/4th = (65+60)/2 = 62.5).</p>
     <textarea id="sPts" rows="3" style="width:100%">${s.points.join(', ')}</textarea>
     <div class="row" style="margin-top:6px"><button id="sPtsSave" class="primary">Save points table</button><button id="sPtsDef">Reset to standard</button></div>
   </section>
-  <section class="card"><h2>Backup &amp; export</h2>
+  <section data-pane="backup"><h3 class="fh">Backup &amp; data</h3>
     <p class="muted">Everything saves automatically in this browser on this laptop. Download a backup before the event and at breaks, so you can move to another laptop if needed.</p>
     <div class="row">
       <button id="bDown" class="primary">Download backup</button>
@@ -1428,8 +1467,28 @@ function renderSettings(){
       <button id="copyRes">Copy results (paste into Excel)</button>
       <button id="wipe" class="danger">Start fresh (delete everything)</button>
     </div>
-  </section>`;
+  </section>
+  </div>`;
+  main.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== esSub);
+  main.querySelectorAll('[data-es]').forEach(b => b.onclick = () => { esSub = b.dataset.es; renderSettings(); });
   const $ = id => document.getElementById(id);
+  main.querySelectorAll('[data-date]').forEach(i => i.onchange = () => { if (i.value) { eventDates()[i.dataset.date] = i.value; save(); renderSettings(); } });
+  main.querySelectorAll('[data-evf]').forEach(el => el.onchange = async () => {
+    const [k, f] = el.dataset.evf.split(':'), e = regEvent(k); let v = el.type === 'checkbox' ? el.checked : el.value;
+    if (f === 'rounds') v = el.value.split(',').map(x => x.trim()).filter(Boolean);
+    if (f === 'judges' || f === 'minAge' || f === 'minGroup') v = el.value === '' ? null : Math.max(f==='minAge'?0:1, parseInt(el.value) || 0);
+    if (f === 'places' && v === 'n') { const n = await dialog({ title:`${e.label}: place the top how many?`, input:true, value:'6', ok:'Set' }); if (!n || !(parseInt(n) > 0)) return renderSettings(); v = String(parseInt(n)); }
+    if (f === 'rounds' && !v.length) return renderSettings();
+    e[f] = v; if (f === 'scoring' && v === 'us' && e.places === 'all') e.places = 'auto';
+    if (f === 'minGroup' && state.reg) state.reg.bands[k] = autoBands(regAges(state.reg, k), v || 6);
+    save(); renderSettings();
+  });
+  main.querySelectorAll('[data-evdel]').forEach(b => b.onclick = async () => { const e = regEvent(b.dataset.evdel); if (!(await askConfirm(`Remove “${e.label}”?`, 'Entries matching it will show as unrecognized after the next import.', 'Remove'))) return; state.settings.events = EVENTS().filter(x => x !== e); save(); renderSettings(); });
+  $('evAdd').onclick = () => addEventDialog();
+  $('evApply').onclick = () => { let n = 0; state.comps.forEach(c => { const e = c.gen && regEvent(c.gen.key); if (e) { applyEventStyle(c, e); n++; } }); save(); pushDisplay(); toast(`Updated ${n} competitions.`); };
+  $('evReset').onclick = async () => { if (!(await askConfirm('Reset the events list?', 'Your changes to events (and any events you added) are replaced by the standard list. Competitions already built are not changed.', 'Reset'))) return; state.settings.events = DEFAULT_EVENTS(); save(); renderSettings(); };
+  main.querySelectorAll('[data-pj]').forEach(i => i.oninput = () => { panel()[+i.dataset.pj] = i.value; save(); });
+  $('pjApply').onclick = () => { const pj = panel(); let n = 0; state.comps.forEach(c => { if (c.gen) { c.judges = c.judges.map((_, i) => pj[i] || `Adjudicator ${i+1}`); n++; } }); save(); pushDisplay(); toast(`Names updated on ${n} competitions.`); };
   $('sEv').oninput = e => { s.eventName=e.target.value; save(); pushDisplay(); };
   $('sBg').oninput = e => { s.bg=e.target.value; save(); pushDisplay(); };
   $('sAcc').oninput = e => { s.acc=e.target.value; save(); pushDisplay(); };
@@ -1465,6 +1524,24 @@ function renderSettings(){
     try { await navigator.clipboard.writeText(lines.join('\n')); toast('Results copied — paste into Excel.'); } catch(_){ toast('Copying isn’t allowed here.'); } };
   $('wipe').onclick = async () => { if(!(await askConfirm('Start fresh?', 'This deletes ALL competitions, scores and settings. Download a backup first if unsure.', 'Delete everything'))) return; const c=newComp('New competition'); state={...defaultState(), comps:[c], editId:c.id, liveId:c.id}; save(); render(); pushDisplay(); };
 }
+function addEventDialog(){
+  const ov = document.createElement('div'); ov.className='dlgOv';
+  ov.innerHTML = `<div class="dlg"><h3>Add an event</h3>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
+      <label>Event name <input id="aeName" placeholder="e.g. Open Champion Solos — Reel"></label>
+      <label>Registration text contains <input id="aeMatch" placeholder="e.g. open champion solo reel"><small class="muted">Entries whose text includes this go to this event.</small></label>
+      <label>Day <select id="aeDay">${Object.keys(eventDates()).map(d => `<option value="${d}">${dayLabel(d)}</option>`).join('')}</select></label>
+      <label>Adjudicators <select id="aeJ"><option>1</option><option>3</option></select></label></div>
+    <div class="dlgBtns"><button class="dlgNo">Cancel</button><button class="dlgOk primary">Add event</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('.dlgNo').onclick = () => ov.remove();
+  ov.querySelector('.dlgOk').onclick = () => { const name = ov.querySelector('#aeName').value.trim(), match = ov.querySelector('#aeMatch').value.trim();
+    if (!name || !match) return toast('Give it a name and the registration text to match.');
+    const day = ov.querySelector('#aeDay').value, j = +ov.querySelector('#aeJ').value;
+    EVENTS().push({ key:'x-'+uid(), custom:true, match, label:name, day, judges:j, rounds:['Mark'], order: EVENTS().length, offered:true, minGroup:6, scoring: day === 'Sat' ? 'irish' : 'us', announce:'stage', places: day === 'Sat' ? 'all' : 'auto' });
+    save(); ov.remove(); renderSettings(); toast('Event added — re-import registrations to pick up its entries.'); };
+  setTimeout(() => ov.querySelector('#aeName').focus(), 30);
+}
 function download(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500); }
 function shrinkImage(file, cb){
   const rd = new FileReader();
@@ -1484,7 +1561,7 @@ const SET_ALIASES = { brownfancy:"Miss Brown's Fancy", missbrown:"Miss Brown's F
 
 const LEVELS = [['ba','Beginner A'],['bb','Beginner B'],['int','Intermediate']];
 const SOLOS = [['lj','Light Jig'],['sj','Slip Jig'],['sgj','Single Jig'],['tj','Treble Jig'],['hp','Hornpipe']];
-const REG_EVENTS = (() => {
+const DEFAULT_EVENTS = () => {
   const ev = [
     // CRDM rules: Premiership & Preliminary = 3 adjudicators, heavy round first; Open Championship 3+, modern set last
     { key:'ocp', label:'Open Champion Premiere Prize', day:'Sat', judges:3, rounds:['Set dance (White Blanket)','Slip Jig'], prem:true, minAge:9 },
@@ -1497,13 +1574,25 @@ const REG_EVENTS = (() => {
     ev.push({ key:`${lk}-award`, label:`${ln} Award (Reel)`, day:'Sun', judges:1, rounds:['Reel'], award:true });
     if (lk !== 'ba') ev.push({ key:`${lk}-prem`, label:`${ln} Premiere Prize`, day:'Sun', judges:3, rounds: lk==='bb' ? ["Set dance (St. Patrick's Day)",'Slip Jig'] : ['Set dance (Jockey / Three Sea Captains)','Slip Jig'], prem:true, minAge:9 });
   });
-  ev.forEach((e,i) => e.order = i);
+  ev.forEach((e,i) => {   // decided before the event (Event setup → Events offered)
+    e.order = i; e.offered = true; e.minGroup = 6;
+    e.scoring = e.day === 'Sat' ? 'irish' : 'us';                       // Saturday championships: Irish grid on stage
+    e.announce = /-(lj|sj|sgj|tj|hp)$/.test(e.key) ? 'post' : 'stage';  // solos posted on the tables
+    e.places = e.scoring === 'us' ? 'auto' : 'all';
+  });
   return ev;
-})();
-const regEvent = k => REG_EVENTS.find(e => e.key === k);
+};
+// the events catalog lives in Event setup; built-in matching for the standard events, “registration text contains” for added ones
+const EVENTS = () => { const st = state.settings; if (!st.events) st.events = DEFAULT_EVENTS(); return st.events; };
+const OFFERED = () => EVENTS().filter(e => e.offered !== false);
+const regEvent = k => EVENTS().find(e => e.key === k);
+const eventDates = () => state.settings.dates || (state.settings.dates = { Sat:'2026-11-21', Sun:'2026-11-22' });
+function dayLabel(day){ const d = eventDates()[day]; if (!d) return day; const dt = new Date(d + 'T12:00:00'); return dt.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }); }
 
 function eventKeyOf(raw){
   const s = raw.toLowerCase().replace(/[’']/g,"'");
+  const custom = EVENTS().find(e => e.custom && e.match && s.includes(e.match.toLowerCase()));
+  if (custom) return custom.key;
   if (/open champion championship/.test(s)) return 'oc';
   if (/open champion premiere/.test(s)) return 'ocp';
   if (/prelim/.test(s)) return 'pc';
@@ -1577,7 +1666,7 @@ function parseRegSheet(rows, fileLabel){
       const g = k => b[k] != null ? r[b[k]] : null;
       const name = String(g('name') || '').trim(); if (!name) return;
       const dob = toISODate(g('dob'));
-      const age = Number(g('age')) || ageOn(dob, EVENT_DATE) || null;
+      const age = Number(g('age')) || ageOn(dob, eventDates().Sat) || null;
       const entries = [...splitList(g('events')), ...splitList(g('solos'))];
       const sub = subCol >= 0 ? r[subCol] : null;
       out.push({ name: name.replace(/\s+/g,' '), dob, age, schoolRaw: String(g('school') || '').trim(), entries, modernRaw: g('modern') ? String(g('modern')).trim() : '',
@@ -1617,12 +1706,12 @@ function buildReg(raws, prev){
   const schoolNames = { ...(prev && prev.schoolNames || {}) };
   Object.entries(groups).forEach(([k, v]) => { if (!schoolNames[k]) schoolNames[k] = Object.entries(v).sort((a,b) => b[1]-a[1] || b[0].length-a[0].length)[0][0] || '(no school)'; });
   const reg = { dancers, schoolNames, schoolGroups: groups, startNo: prev ? prev.startNo : REG_START_NO, bands: prev ? prev.bands || {} : {}, judges: prev ? prev.judges : ['Adjudicator 1','Adjudicator 2','Adjudicator 3'], importedAt: Date.now() };
-  REG_EVENTS.forEach(e => { if (!reg.bands[e.key]) reg.bands[e.key] = autoBands(regAges(reg, e.key)); });
+  EVENTS().forEach(e => { if (!reg.bands[e.key]) reg.bands[e.key] = autoBands(regAges(reg, e.key), e.minGroup || 6); });
   return reg;
 }
 const schoolOf = (reg, d) => reg.schoolNames[schoolKey(d.schoolRaw) || '(none)'] || d.schoolRaw || '(no school)';
 const regDancersIn = (reg, key) => reg.dancers.filter(d => d.events.includes(key));
-const dayDate = day => day === 'Sun' ? '2026-11-22' : '2026-11-21';
+const dayDate = day => eventDates()[day] || eventDates().Sat;
 // CRDM: age category = the dancer's age on the day of the Feis
 const ageFor = (d, key) => { const a = ageOn(d.dob, dayDate((regEvent(key) || {}).day)); return a != null && a >= 2 && a < 100 ? a : (d.age || 0); };
 function regAges(reg, key){ const c = {}; regDancersIn(reg, key).forEach(d => { const a = ageFor(d, key); c[a] = (c[a] || 0) + 1; }); return Object.entries(c).map(([a,n]) => [+a, n]).sort((x,y) => x[0]-y[0]); }
@@ -1692,7 +1781,7 @@ function makeLineup(reg, key, dancers){
 /* ---------- create competitions ---------- */
 function generateComps(reg){
   const made = [];
-  REG_EVENTS.forEach(e => {
+  OFFERED().forEach(e => {
     const bands = bandsOf(reg, e.key);
     bands.forEach(b => {
       const ds = regDancersIn(reg, e.key).filter(d => ageFor(d, e.key) >= b.from && ageFor(d, e.key) <= b.to);
@@ -1700,16 +1789,23 @@ function generateComps(reg){
       const lu = makeLineup(reg, e.key, ds);
       const c = newComp(`${e.label} · ${bandLabel(b, bands.length === 1)}`);
       c.gen = { key: e.key, from: b.from, to: b.to, day: e.day, order: e.order, clashes: lu.clashes };
-      c.judges = e.judges === 3 ? reg.judges.slice(0,3) : [reg.judges[0] || 'Adjudicator 1'];
-      c.rounds = e.rounds.length; c.roundNames = e.rounds.slice(); c.places = -1;
-      c.scoring = e.day === 'Sat' ? 'irish' : 'us';   // Saturday championships awarded on stage with the Irish grid; Sunday US style
-      c.places = c.scoring === 'us' ? 0 : -1;          // Irish: everyone on the grid; US: top half, 3–6 (Settings)
-      c.announce = /-(lj|sj|sgj|tj|hp)$/.test(e.key) ? 'post' : 'stage';   // solos posted on the tables; awards & premiere prizes on stage
+      applyEventDefaults(c, e);
       c.dancers = lu.order.map(d => ({ id: uid(), rid: d.id, no: String(d.no), name: d.name, school: schoolOf(reg, d) }));
       made.push(c);
     });
   });
   return made;
+}
+function panel(){ const st = state.settings; return st.judges || (st.judges = (state.reg && state.reg.judges) ? state.reg.judges.slice() : ['Adjudicator 1','Adjudicator 2','Adjudicator 3']); }
+function applyEventDefaults(c, e){
+  const pj = panel(); c.judges = Array.from({ length: e.judges || 1 }, (_, i) => pj[i] || `Adjudicator ${i+1}`);
+  c.rounds = e.rounds.length; c.roundNames = e.rounds.slice();
+  applyEventStyle(c, e);
+}
+function applyEventStyle(c, e){
+  c.scoring = e.scoring === 'us' ? 'us' : 'irish';
+  c.announce = e.announce === 'post' ? 'post' : 'stage';
+  c.places = e.places === 'all' ? -1 : e.places === 'auto' ? 0 : Math.max(1, parseInt(e.places) || 1);
 }
 function redrawComp(c){
   const reg = state.reg; if (!reg || !c.gen) return;
@@ -1733,7 +1829,7 @@ function printLineups(comps){
         ${isPrem ? `<td>${esc(c.roundNames ? c.roundNames[0].replace(/^Set dance \(|\)$/g,'') : 'Set dance')}</td><td>${premLight(r)}</td>` : ''}
         ${isOC ? `<td>${esc(rr.heavy)}</td><td>${esc(rr.light)}</td><td>${r.modern && r.modern.name ? esc(r.modern.name) + (r.modern.speed ? ` <span class="sp">(${esc(r.modern.speed)})</span>` : '') : r.modern && r.modern.type ? `${r.modern.type==='HP'?'Hornpipe':'Treble jig'} set — <b class="miss">name missing</b>` : '<b class="miss">MISSING</b>'}</td>` : ''}</tr>`; }).join('');
     return `<section class="pg"><div class="hd">${logo ? `<img class="lg" src="${logo}">` : ''}<div><div class="ev">${esc(ev)}</div><h1>${esc(c.name)}</h1>
-      <div class="meta">${sessionOf(c) ? esc(sessionOf(c).name) + ' · ' : c.gen ? (c.gen.day === 'Sat' ? 'Saturday, November 21' : 'Sunday, November 22') + ' · ' : ''}${ds.length} dancers · dancing 2 at a time</div></div></div>
+      <div class="meta">${sessionOf(c) ? esc(sessionOf(c).name) + ' · ' : c.gen ? dayLabel(c.gen.day) + ' · ' : ''}${ds.length} dancers · dancing 2 at a time</div></div></div>
       <table><thead><tr><th>Pair</th><th>No.</th><th>Dancer</th><th>School</th>${isPrem ? '<th>Set dance (heavy)</th><th>Light round</th>' : ''}${isOC ? '<th>Heavy round</th><th>Light round</th><th>Modern set (speed)</th>' : ''}</tr></thead><tbody>${rows}</tbody></table></section>`;
   });
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Line-ups</title><style>
@@ -1802,7 +1898,7 @@ function renderRegistration(){
     return;
   }
   const iss = regIssues(reg), comps = state.comps.filter(c => c.gen);
-  const evRows = REG_EVENTS.map(e => ({ e, n: regDancersIn(reg, e.key).length })).filter(x => x.n);
+  const evRows = OFFERED().map(e => ({ e, n: regDancersIn(reg, e.key).length })).filter(x => x.n);
   const nWarn = iss.ocNoModern.length + iss.unknown.length + iss.rules.length;
   const sub = regView.sub || (nWarn ? 'check' : 'roster');
   const tabs = [['check', `Needs a look${nWarn ? ` <span class="tabBadge">${nWarn}</span>` : ''}`], ['dancers','Dancers'], ['roster','Roster'], ['schools','Schools'], ['ages','Age groups'], ['comps', `Competitions & line-ups${comps.length ? ` <span class="tabBadge ok">${comps.length}</span>` : ''}`]];
@@ -1814,7 +1910,7 @@ function renderRegistration(){
       <button class="tile" data-tile="roster:all"><b>${reg.dancers.length}</b><span>dancers ▸</span></button>
       <button class="tile" data-tile="roster:school"><b>${new Set(reg.dancers.map(d => schoolOf(reg,d))).size}</b><span>schools ▸</span></button>
       <button class="tile" data-tile="roster:event"><b>${reg.dancers.reduce((t,d) => t + d.events.length, 0)}</b><span>entries ▸</span></button>
-      <button class="tile" data-tile="roster:age"><b>${Math.min(...reg.dancers.map(d=>ageOn(d.dob,'2026-11-21') ?? d.age ?? 99))}–${Math.max(...reg.dancers.map(d=>ageOn(d.dob,'2026-11-21') ?? d.age ?? 0))}</b><span>ages ▸</span></button>
+      <button class="tile" data-tile="roster:age"><b>${Math.min(...reg.dancers.map(d=>ageOn(d.dob, eventDates().Sat) ?? d.age ?? 99))}–${Math.max(...reg.dancers.map(d=>ageOn(d.dob, eventDates().Sat) ?? d.age ?? 0))}</b><span>ages ▸</span></button>
       <button class="tile" data-tile="dancers"><b>${Math.min(...nums)}–${Math.max(...nums)}</b><span>dancer numbers ▸</span></button>
       ${comps.length ? `<button class="tile" data-tile="roster:comp"><b>${comps.length}</b><span>competitions ▸</span></button>` : ''}
     </div>
@@ -1835,7 +1931,8 @@ function renderRegistration(){
   main.querySelectorAll('[data-school]').forEach(inp => inp.onchange = () => { reg.schoolNames[inp.dataset.school] = inp.value.trim() || inp.value; save(); });
   main.querySelectorAll('[data-schoolroster]').forEach(b => b.onclick = () => go('roster', { group:'school', rq: b.dataset.schoolroster }));
   main.querySelectorAll('[data-adj]').forEach(inp => inp.oninput = () => { reg.judges[+inp.dataset.adj] = inp.value; save(); });
-  if ($('bandsAuto')) { $('bandsAuto').onclick = () => { REG_EVENTS.forEach(e => reg.bands[e.key] = autoBands(regAges(reg, e.key))); save(); render(); toast('Age groups re-split automatically.'); }; bindBands(reg); }
+  if ($('bandsAuto')) { $('bandsAuto').onclick = () => { EVENTS().forEach(e => reg.bands[e.key] = autoBands(regAges(reg, e.key), e.minGroup || 6)); save(); render(); toast('Age groups re-split automatically.'); }; bindBands(reg); }
+  if ($('toES')) $('toES').onclick = () => { state.tab = 'settings'; esSub = 'events'; save(); render(); };
   if ($('genComps')) $('genComps').onclick = async () => {
     const old = state.comps.filter(c => c.gen), scored = old.filter(c => Object.keys(c.scores||{}).length);
     if (old.length && !(await askConfirm('Rebuild competitions?', `This replaces the ${old.length} competitions made from registrations${scored.length ? ` — ${scored.length} of them already have scores, which will be lost` : ''}. Your other competitions stay.`, 'Rebuild'))) return;
@@ -1850,6 +1947,7 @@ function renderRegistration(){
   if ($('bulkGo')) $('bulkGo').onclick = () => { const k = $('bulkEv').value, sid = $('bulkSes').value; let n = 0; state.comps.forEach(c => { if (c.gen && c.gen.key === k) { c.session = sid; n++; } }); save(); render(); toast(`${n} competitions moved to ${sessions().find(x => x.id===sid).name}.`); };
   main.querySelectorAll('[data-redraw]').forEach(b => b.onclick = () => { const c = getComp(b.dataset.redraw); redrawComp(c); save(); render(); toast('New line-up drawn.'); });
   main.querySelectorAll('[data-lu]').forEach(b => b.onclick = () => printLineups([getComp(b.dataset.lu)]));
+  main.querySelectorAll('[data-cdet]').forEach(b => b.onclick = () => openDetails(getComp(b.dataset.cdet)));
 }
 function regSubHTML(sub, reg, iss, comps, evRows){
   if (sub === 'check') return `<h3 class="fh">Needs a look</h3>
@@ -1880,28 +1978,27 @@ function regSubHTML(sub, reg, iss, comps, evRows){
   if (sub === 'ages') return `<div class="stepHead"><h3 class="fh" style="margin:0">Age groups <span class="muted">— tap between ages to split or join; aim for 6+ per group. Ages are on the day of the event.</span></h3><div class="spacer"></div><button id="bandsAuto">Auto-split all</button></div>
     <div class="bandList">${evRows.map(({e,n}) => bandRowHTML(reg, e, n)).join('')}</div>`;
   return `<h3 class="fh">Competitions & line-ups</h3>
-    <div class="row"><label>Adjudicator 1 <input data-adj="0" value="${esc(reg.judges[0]||'')}"></label><label>Adjudicator 2 <input data-adj="1" value="${esc(reg.judges[1]||'')}"></label><label>Adjudicator 3 <input data-adj="2" value="${esc(reg.judges[2]||'')}"></label>
-      <span class="muted" style="padding-bottom:6px">Per CRDM rules: Open, Preliminary and Premiere Prize competitions use all three; Awards and solos use one (Adjudicator 1). Change any competition on its Setup tab.</span></div>
+    <div class="hint">Built from <b>Event setup</b>: each event’s adjudicators, rounds, Irish/US style and placing, with the adjudicator panel <b>${panel().map(esc).join(', ')}</b>. <button class="mini" id="toES">Edit in Event setup ▸</button> Change a single competition with its ⚙ Details.</div>
     <div class="row"><button id="genComps" class="primary">${comps.length ? '↻ Rebuild competitions & line-ups' : '✓ Create competitions & line-ups'}</button>
       ${comps.length ? `<button id="prSat">🖨 Saturday line-ups</button><button id="prSun">🖨 Sunday line-ups</button><button id="prSheets">🖨 Score sheets — all</button>` : ''}</div>
-    ${comps.length ? `<div class="row bulkRow"><span class="muted">Put every</span><select id="bulkEv">${REG_EVENTS.filter(e => comps.some(c => c.gen.key===e.key)).map(e => `<option value="${e.key}">${esc(e.label)}</option>`).join('')}</select><span class="muted">competition into</span><select id="bulkSes">${sessions().map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button id="bulkGo">Apply</button><span class="muted">Edit blocks under Settings.</span></div>` : ''}
+    ${comps.length ? `<div class="row bulkRow"><span class="muted">Put every</span><select id="bulkEv">${EVENTS().filter(e => comps.some(c => c.gen.key===e.key)).map(e => `<option value="${e.key}">${esc(e.label)}</option>`).join('')}</select><span class="muted">competition into</span><select id="bulkSes">${sessions().map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button id="bulkGo">Apply</button><span class="muted">Edit blocks in Event setup.</span></div>` : ''}
     ${comps.length ? genSummaryHTML(comps) : '<div class="muted">This creates one competition per event and age group, with the dancers in line-up order: hornpipe modern sets first, then treble jig, and no two dancers from the same school back to back.</div>'}`;
 }
 /* ---------- roster ---------- */
 function rosterGroups(){
   const reg = state.reg, g = regView.group || 'all', q = (regView.rq || '').trim().toLowerCase();
   const match = d => !q || `${d.no} ${d.name} ${schoolOf(reg,d)}`.toLowerCase().includes(q);
-  const sat = d => ageOn(d.dob, '2026-11-21') ?? d.age;
+  const sat = d => ageOn(d.dob, eventDates().Sat) ?? d.age;
   const byNo = (a,b) => a.no - b.no;
   if (g === 'all') return [{ title:'All dancers', list: reg.dancers.filter(match).sort(byNo) }];
   if (g === 'school') { const m = {}; reg.dancers.filter(match).forEach(d => (m[schoolOf(reg,d)] = m[schoolOf(reg,d)] || []).push(d));
     return Object.entries(m).sort((a,b) => a[0].localeCompare(b[0])).map(([t,l]) => ({ title:t, list:l.sort(byNo) })); }
   if (g === 'age') { const m = {}; reg.dancers.filter(match).forEach(d => (m[sat(d)] = m[sat(d)] || []).push(d));
     return Object.entries(m).sort((a,b) => a[0]-b[0]).map(([t,l]) => ({ title:`Age ${t}`, list:l.sort(byNo) })); }
-  if (g === 'event') return REG_EVENTS.map(e => ({ title:e.label, sub: e.day === 'Sat' ? 'Saturday' : 'Sunday', list: regDancersIn(reg, e.key).filter(match).sort((a,b) => ageFor(a,e.key) - ageFor(b,e.key) || a.no - b.no), ev:e.key })).filter(x => x.list.length);
+  if (g === 'event') return EVENTS().map(e => ({ title:e.label, sub: dayLabel(e.day), list: regDancersIn(reg, e.key).filter(match).sort((a,b) => ageFor(a,e.key) - ageFor(b,e.key) || a.no - b.no), ev:e.key })).filter(x => x.list.length);
   // by competition, in line-up order
   const byRid = new Map(reg.dancers.map(d => [d.id, d]));
-  return sortedGen().map(c => ({ title:c.name, sub: sessionOf(c) ? sessionOf(c).name : (c.gen.day === 'Sat' ? 'Saturday' : 'Sunday'), comp:c,
+  return sortedGen().map(c => ({ title:c.name, sub: sessionOf(c) ? sessionOf(c).name : dayLabel(c.gen.day), comp:c,
     list: c.dancers.filter(x => !x.dnd).map(x => byRid.get(x.rid)).filter(Boolean).filter(match) })).filter(x => x.list.length);
 }
 function drawRoster(){
@@ -1910,7 +2007,7 @@ function drawRoster(){
   const evChips = d => d.events.map(k => `<span class="evc">${esc(regEvent(k).label)}</span>`).join('');
   body.innerHTML = groups.map(gr => `<details class="rosGroup" ${single || (regView.rq||'').trim() ? 'open' : ''}><summary><b>${esc(gr.title)}</b>${gr.sub ? ` <span class="muted">${esc(gr.sub)}</span>` : ''}<span class="rosN">${gr.list.length}</span></summary>
     <div class="tblwrap"><table class="tbl rosTbl"><thead><tr>${gr.comp ? '<th class="num">Order</th>' : ''}<th>No.</th><th>Dancer</th><th class="num">Age</th>${g === 'school' ? '' : '<th class="hide-m">School</th>'}${gr.comp || gr.ev ? (gr.comp && gr.comp.gen.key === 'oc' || gr.ev === 'oc' ? '<th>Modern set</th>' : '') : '<th>Events</th>'}</tr></thead><tbody>
-    ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td class="num muted">${i+1}${i % 2 === 0 ? ` <small>pair ${Math.floor(i/2)+1}</small>` : ''}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}${d.boy ? ' <span class="muted">(boy)</span>' : ''}</td><td class="num">${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob,'2026-11-21') ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td class="hide-m">${esc(schoolOf(reg,d))}</td>`}
+    ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td class="num muted">${i+1}${i % 2 === 0 ? ` <small>pair ${Math.floor(i/2)+1}</small>` : ''}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}${d.boy ? ' <span class="muted">(boy)</span>' : ''}</td><td class="num">${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob, eventDates().Sat) ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td class="hide-m">${esc(schoolOf(reg,d))}</td>`}
       ${gr.comp || gr.ev ? ((gr.comp && gr.comp.gen.key === 'oc') || gr.ev === 'oc' ? `<td>${d.modern && d.modern.name ? esc(d.modern.name) + (d.modern.speed ? ` <span class="muted">(${esc(d.modern.speed)})</span>` : '') : '<span class="warn">missing</span>'}</td>` : '') : `<td class="evs">${evChips(d)}</td>`}</tr>`).join('')}
     </tbody></table></div></details>`).join('') || '<div class="muted">No dancers match.</div>';
 }
@@ -1927,7 +2024,7 @@ function printRoster(){
   </style></head><body><div class="bar"><button onclick="print()">Print</button>${groups.length} group${groups.length>1?'s':''}${g === 'school' ? ' — each school starts on a new page' : ''}.</div><div class="wrap">
     <div class="ev">${esc(ev)}</div><h1>Roster — ${titles[g]}</h1>
     ${groups.map(gr => `<section><h2>${esc(gr.title)} <span>· ${gr.list.length} dancer${gr.list.length>1?'s':''}${gr.sub ? ' · ' + esc(gr.sub) : ''}</span></h2><table><thead><tr>${gr.comp ? '<th>#</th>' : ''}<th>No.</th><th>Dancer</th><th>Age</th>${g === 'school' ? '' : '<th>School</th>'}${gr.comp || gr.ev ? '' : '<th>Events</th>'}</tr></thead><tbody>
-      ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td>${i+1}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}</td><td>${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob,'2026-11-21') ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td>${esc(schoolOf(reg,d))}</td>`}${gr.comp || gr.ev ? '' : `<td>${d.events.map(k => esc(regEvent(k).label)).join(', ')}</td>`}</tr>`).join('')}
+      ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td>${i+1}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}</td><td>${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob, eventDates().Sat) ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td>${esc(schoolOf(reg,d))}</td>`}${gr.comp || gr.ev ? '' : `<td>${d.events.map(k => esc(regEvent(k).label)).join(', ')}</td>`}</tr>`).join('')}
     </tbody></table></section>`).join('')}</div></body></html>`;
   const w = window.open('', '_blank');
   if (!w) return toast('The roster can’t open here — print it from your website or the laptop file.');
@@ -1938,18 +2035,18 @@ const sortedGen = () => { const sIdx = c => { const i = sessions().findIndex(x =
 function genSummaryHTML(comps){
   const byDay = d => sortedGen().filter(c => c.gen.day === d);
   const sesSel = c => `<select data-cses="${c.id}"><option value="">—</option>${sessions().filter(x => x.day === c.gen.day).map(x => `<option value="${x.id}" ${c.session===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`;
-  const row = c => { const n = live(c).length; return `<tr><td>${esc(c.name)}</td><td>${sesSel(c)}</td><td class="num">${n}${n < 6 ? ' <span class="pill tie">under 6</span>' : ''}</td><td class="num">${c.judges.length}</td><td><span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
+  const row = c => { const n = live(c).length; return `<tr><td>${esc(c.name)}</td><td>${sesSel(c)}</td><td class="num">${n}${n < ((regEvent(c.gen.key)||{}).minGroup||6) ? ` <span class="pill tie">under ${(regEvent(c.gen.key)||{}).minGroup||6}</span>` : ''}</td><td class="num">${c.judges.length}</td><td><span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
     <td>${c.gen.clashes ? `<span class="warn">${c.gen.clashes} same-school pair${c.gen.clashes>1?'s':''} unavoidable</span>` : '<span class="muted">✓ schools apart</span>'}</td>
-    <td class="num"><button class="mini" data-lu="${c.id}">Line-up</button> <button class="mini" data-redraw="${c.id}">↻ Re-draw</button></td></tr>`; };
+    <td class="num"><button class="mini" data-cdet="${c.id}">⚙ Details</button> <button class="mini" data-lu="${c.id}">Line-up</button> <button class="mini" data-redraw="${c.id}">↻ Re-draw</button></td></tr>`; };
   return ['Sat','Sun'].map(d => { const cs = byDay(d); if (!cs.length) return '';
-    return `<h3 class="dayH">${d === 'Sat' ? 'Saturday, November 21' : 'Sunday, November 22'} <span class="muted">— ${cs.length} competitions</span></h3>
+    return `<h3 class="dayH">${dayLabel(d)} <span class="muted">— ${cs.length} competitions</span></h3>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>Competition</th><th>Block</th><th class="num">Dancers</th><th class="num">Adj.</th><th>Results</th><th>Line-up</th><th></th></tr></thead><tbody>${cs.map(row).join('')}</tbody></table></div>`; }).join('');
 }
 function bandRowHTML(reg, e, n){
   const ages = regAges(reg, e.key), starts = new Set(bandsOf(reg, e.key).map(b => b.from)), bands = bandsOf(reg, e.key);
-  return `<div class="bandRow"><div class="bandHead"><b>${esc(e.label)}</b> <span class="muted">${e.day === 'Sat' ? 'Sat' : 'Sun'} · ${n} dancers</span></div>
+  return `<div class="bandRow"><div class="bandHead"><b>${esc(e.label)}</b> <span class="muted">${dayLabel(e.day)} · ${n} dancers</span></div>
     <div class="ages">${ages.map(([a,c], i) => `${i ? `<button class="gap ${starts.has(a) ? 'cut' : ''}" data-cut="${e.key}:${a}" title="${starts.has(a) ? 'Join these ages' : 'Split here'}">${starts.has(a) ? '│' : '·'}</button>` : ''}<span class="age"><b>${a}</b><small>${c}</small></span>`).join('')}</div>
-    <div class="bands">${bands.map(b => `<span class="band ${b.n < 6 ? 'small' : ''}">${bandLabel(b, bands.length === 1)}: <b>${b.n}</b></span>`).join('')}</div></div>`;
+    <div class="bands">${bands.map(b => `<span class="band ${b.n < (e.minGroup||6) ? 'small' : ''}">${bandLabel(b, bands.length === 1)}: <b>${b.n}</b></span>`).join('')}</div></div>`;
 }
 function bindBands(reg){
   main.querySelectorAll('[data-cut]').forEach(b => b.onclick = () => {
