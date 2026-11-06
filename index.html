@@ -205,6 +205,21 @@
   .ovPhotos { display:flex; align-items:center; gap:12px; flex-wrap:wrap; } .ovPhotos .btnlike { padding:9px 14px; font-weight:600; white-space:nowrap; }
   .sesTag { display:inline-block; margin-left:6px; font-size:11px; font-weight:600; color:#4a2a7a; background:#ede7f6; border-radius:6px; padding:1px 6px; vertical-align:middle; }
   .bulkRow { align-items:center; background:#fafbfc; border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .regHead { padding-bottom:10px; margin-bottom:0; }
+  .tile { display:flex; flex-direction:column; align-items:flex-start; background:#fafbfc; border:1px solid var(--line); border-radius:8px; padding:8px 14px; text-align:left; }
+  .tile:hover { border-color:var(--pri); background:#f3faf6; } .tile b { font-size:20px; } .tile span { font-size:12px; color:var(--pri2); font-weight:600; }
+  .folderTabs { display:flex; gap:3px; margin:14px 0 0; padding-left:10px; overflow-x:auto; position:relative; z-index:1; }
+  .folderTabs button { border:1px solid var(--line); border-bottom:none; border-radius:10px 10px 0 0; background:#eef1f4; padding:9px 14px; font-weight:600; color:var(--muted); white-space:nowrap; margin-bottom:-1px; }
+  .folderTabs button.on { background:#fff; color:var(--pri2); box-shadow:0 -2px 0 var(--pri) inset; box-shadow:none; border-top:3px solid var(--pri); padding-top:7px; }
+  .card.folder { border-top-left-radius:0; margin-top:0; }
+  .tabBadge { display:inline-block; background:var(--warn); color:#fff; border-radius:9px; font-size:11px; padding:0 6px; margin-left:4px; } .tabBadge.ok { background:var(--pri); }
+  .fh { margin:0 0 10px; font-size:15px; }
+  .checkList { margin:0; padding-left:18px; } .checkList > li { margin:8px 0; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; } .seg button { border:0; border-radius:0; border-right:1px solid var(--line); padding:7px 12px; } .seg button:last-child { border-right:0; } .seg button.on { background:var(--pri); color:#fff; }
+  .rosGroup { border:1px solid var(--line); border-radius:8px; margin:6px 0; background:#fff; } .rosGroup summary { cursor:pointer; padding:9px 12px; display:flex; align-items:center; gap:8px; } .rosGroup[open] summary { border-bottom:1px solid var(--line); background:#fafbfc; }
+  .rosN { margin-left:auto; background:#eef1f4; border-radius:10px; padding:1px 9px; font-size:12px; font-weight:700; }
+  .rosTbl { margin:0; } .rosTbl small { color:var(--muted); }
+  .schoolGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:8px; } .schoolCard { display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; padding:10px 12px; border-radius:8px; } .schoolCard:hover { border-color:var(--pri); background:#f3faf6; } .schoolCard span { font-size:12px; color:var(--pri2); }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -247,7 +262,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.4</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v2.5</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -1753,7 +1768,7 @@ async function readRegFiles(files){
 }
 
 /* ---------- the Registration tab ---------- */
-let regView = { q:'', filter:'all' };
+let regView = { q:'', filter:'all', sub:null, group:'all', rq:'' };
 function ruleFlags(reg){
   const out = [];
   reg.dancers.forEach(d => {
@@ -1788,60 +1803,46 @@ function renderRegistration(){
   }
   const iss = regIssues(reg), comps = state.comps.filter(c => c.gen);
   const evRows = REG_EVENTS.map(e => ({ e, n: regDancersIn(reg, e.key).length })).filter(x => x.n);
+  const nWarn = iss.ocNoModern.length + iss.unknown.length + iss.rules.length;
+  const sub = regView.sub || (nWarn ? 'check' : 'roster');
+  const tabs = [['check', `Needs a look${nWarn ? ` <span class="tabBadge">${nWarn}</span>` : ''}`], ['dancers','Dancers'], ['roster','Roster'], ['schools','Schools'], ['ages','Age groups'], ['comps', `Competitions & line-ups${comps.length ? ` <span class="tabBadge ok">${comps.length}</span>` : ''}`]];
+  const nums = reg.dancers.map(d => d.no);
   main.innerHTML = `
-  <section class="card"><div class="stepHead"><span class="step">1</span><h2 style="margin:0">Registrations</h2><div class="spacer"></div>
-      <label class="btnlike">📂 Re-import files<input type="file" id="regFiles" accept=".xlsx,.xls,.csv" multiple hidden></label><button id="regClear" class="danger">Clear registrations</button></div>
-    <div class="regStats"><div><b>${reg.dancers.length}</b><span>dancers</span></div><div><b>${new Set(reg.dancers.map(d => schoolOf(reg,d))).size}</b><span>schools</span></div>
-      <div><b>${reg.dancers.reduce((t,d) => t + d.events.length, 0)}</b><span>entries</span></div><div><b>${Math.min(...reg.dancers.map(d=>d.no))}–${Math.max(...reg.dancers.map(d=>d.no))}</b><span>dancer numbers</span></div></div>
-    ${iss.ocNoModern.length || iss.noEvents.length || iss.unknown.length || iss.dupes.length ? `<div class="issues"><b>Needs a look</b><ul>
-      ${iss.ocNoModern.length ? `<li class="warn"><b>${iss.ocNoModern.length} Open Championship dancer${iss.ocNoModern.length>1?'s':''} without a modern set name</b> — needed for the line-up order and heavy/light rounds. <button class="mini" data-filter="modern">Show them</button></li>` : ''}
-      ${iss.noEvents.length ? `<li><b>${iss.noEvents.length}</b> registered with no events: ${iss.noEvents.map(d => esc(d.name)).join(', ')}</li>` : ''}
-      ${iss.unknown.length ? `<li class="warn"><b>${iss.unknown.length}</b> with an event the app didn’t recognize. <button class="mini" data-filter="unknown">Show them</button></li>` : ''}
-      ${iss.dupes.length ? `<li>${iss.dupes.length} dancer${iss.dupes.length>1?'s were':' was'} registered twice — merged into one, with all their events: ${iss.dupes.map(d => esc(d.name)).join(', ')}</li>` : ''}
-      ${iss.rules.length ? `<li class="warn"><b>${iss.rules.length} CRDM rule check${iss.rules.length>1?'s':''}</b> to confirm: <details><summary>Show</summary><ul class="rl">${iss.rules.map(r => `<li><b>${r.d.no} ${esc(r.d.name)}</b> — ${esc(r.msg)}</li>`).join('')}</ul></details></li>` : ''}
-      <li>Tick <b>Boy</b> for boys — they dance the Reel as their light round (Open Championship and Premiere Prizes).</li></ul></div>` : ''}
+  <section class="card regHead"><div class="stepHead"><h2 style="margin:0">Registrations</h2><div class="spacer"></div>
+      <label class="btnlike">📂 Re-import files<input type="file" id="regFiles" accept=".xlsx,.xls,.csv" multiple hidden></label><button id="regClear" class="danger">Clear</button></div>
+    <div class="regStats">
+      <button class="tile" data-tile="roster:all"><b>${reg.dancers.length}</b><span>dancers ▸</span></button>
+      <button class="tile" data-tile="roster:school"><b>${new Set(reg.dancers.map(d => schoolOf(reg,d))).size}</b><span>schools ▸</span></button>
+      <button class="tile" data-tile="roster:event"><b>${reg.dancers.reduce((t,d) => t + d.events.length, 0)}</b><span>entries ▸</span></button>
+      <button class="tile" data-tile="roster:age"><b>${Math.min(...reg.dancers.map(d=>ageOn(d.dob,'2026-11-21') ?? d.age ?? 99))}–${Math.max(...reg.dancers.map(d=>ageOn(d.dob,'2026-11-21') ?? d.age ?? 0))}</b><span>ages ▸</span></button>
+      <button class="tile" data-tile="dancers"><b>${Math.min(...nums)}–${Math.max(...nums)}</b><span>dancer numbers ▸</span></button>
+      ${comps.length ? `<button class="tile" data-tile="roster:comp"><b>${comps.length}</b><span>competitions ▸</span></button>` : ''}
+    </div>
   </section>
-
-  <section class="card"><div class="stepHead"><span class="step">2</span><h2 style="margin:0">Dancers <span class="muted">— numbers are in registration order</span></h2></div>
-    <div class="row" style="align-items:center"><input id="regQ" placeholder="Search name, number or school" value="${esc(regView.q)}" style="flex:1;min-width:200px">
-      <select id="regF"><option value="all">All dancers</option><option value="oc" ${regView.filter==='oc'?'selected':''}>Open Championship</option><option value="modern" ${regView.filter==='modern'?'selected':''}>Missing modern set</option><option value="boys" ${regView.filter==='boys'?'selected':''}>Boys</option><option value="unknown" ${regView.filter==='unknown'?'selected':''}>Unrecognized events</option></select></div>
-    <div class="tblwrap regTblWrap"><table class="tbl regTbl"><thead><tr><th>No.</th><th>Dancer</th><th class="num">Age</th><th class="hide-m">School</th><th>Events</th><th>Modern set (OC)</th><th>Boy</th></tr></thead><tbody id="regBody"></tbody></table></div>
-  </section>
-
-  ${iss.merges.length ? `<section class="card"><div class="stepHead"><span class="step">3</span><h2 style="margin:0">School names <span class="muted">— spellings that were merged; edit the name used on line-ups if needed</span></h2></div>
-    ${iss.merges.map(([k, v]) => `<div class="mergeRow"><input data-school="${esc(k)}" value="${esc(reg.schoolNames[k])}"><span class="muted">← ${Object.entries(v).map(([n,c]) => `“${esc(n)}” ×${c}`).join(', ')}</span></div>`).join('')}
-  </section>` : ''}
-
-  <section class="card"><div class="stepHead"><span class="step">${iss.merges.length?4:3}</span><h2 style="margin:0">Age groups <span class="muted">— tap between ages to split or join; aim for 6+ per group</span></h2><div class="spacer"></div><button id="bandsAuto">Auto-split all</button></div>
-    <div class="bandList">${evRows.map(({e,n}) => bandRowHTML(reg, e, n)).join('')}</div>
-  </section>
-
-  <section class="card"><div class="stepHead"><span class="step">${iss.merges.length?5:4}</span><h2 style="margin:0">Competitions & line-ups</h2></div>
-    <div class="row"><label>Adjudicator 1 <input data-adj="0" value="${esc(reg.judges[0]||'')}"></label><label>Adjudicator 2 <input data-adj="1" value="${esc(reg.judges[1]||'')}"></label><label>Adjudicator 3 <input data-adj="2" value="${esc(reg.judges[2]||'')}"></label>
-      <span class="muted" style="padding-bottom:6px">Per CRDM rules: Open, Preliminary and Premiere Prize competitions use all three; Awards and solos use one (Adjudicator 1). Change any competition on its Setup tab.</span></div>
-    <div class="row"><button id="genComps" class="primary">${comps.length ? '↻ Rebuild competitions & line-ups' : '✓ Create competitions & line-ups'}</button>
-      ${comps.length ? `<button id="prSat">🖨 Saturday line-ups</button><button id="prSun">🖨 Sunday line-ups</button><button id="prSheets">🖨 Score sheets — all</button>` : ''}</div>
-    ${comps.length ? `<div class="row bulkRow"><span class="muted">Put every</span><select id="bulkEv">${REG_EVENTS.filter(e => comps.some(c => c.gen.key===e.key)).map(e => `<option value="${e.key}">${esc(e.label)}</option>`).join('')}</select><span class="muted">competition into</span><select id="bulkSes">${sessions().map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button id="bulkGo">Apply</button><span class="muted">Edit blocks under Settings.</span></div>` : ''}
-    ${comps.length ? genSummaryHTML(comps) : '<div class="muted">This creates one competition per event and age group, with the dancers in line-up order: hornpipe modern sets first, then treble jig, and no two dancers from the same school back to back.</div>'}
-  </section>`;
+  <nav class="folderTabs">${tabs.map(([k,l]) => `<button data-sub="${k}" class="${k===sub?'on':''}">${l}</button>`).join('')}</nav>
+  <section class="card folder">${regSubHTML(sub, reg, iss, comps, evRows)}</section>`;
   const $ = id => document.getElementById(id);
+  const go = (s, extra) => { regView.sub = s; Object.assign(regView, extra || {}); render(); };
+  main.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => go(b.dataset.sub));
+  main.querySelectorAll('[data-tile]').forEach(b => b.onclick = () => { const [s, g] = b.dataset.tile.split(':'); go(s, g ? { group:g, rq:'' } : { filter:'all', q:'' }); });
   $('regFiles').onchange = e => importReg([...e.target.files]);
   $('regClear').onclick = async () => { if (!(await askConfirm('Clear all registrations?', 'Dancers, numbers and age groups will be removed from this device. Competitions already created stay.', 'Clear'))) return; delete state.reg; save(); render(); };
-  main.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => { regView.filter = b.dataset.filter; render(); setTimeout(() => document.getElementById('regQ').scrollIntoView({ block:'center' }), 30); });
-  $('regQ').oninput = e => { regView.q = e.target.value; drawRegRows(); };
-  $('regF').onchange = e => { regView.filter = e.target.value; drawRegRows(); };
+  main.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => go('dancers', { filter: b.dataset.filter, q:'' }));
+  if ($('regQ')) { $('regQ').oninput = e => { regView.q = e.target.value; drawRegRows(); }; $('regF').onchange = e => { regView.filter = e.target.value; drawRegRows(); }; drawRegRows(); }
+  if ($('rosQ')) { $('rosQ').oninput = e => { regView.rq = e.target.value; drawRoster(); }; main.querySelectorAll('[data-group]').forEach(b => b.onclick = () => { regView.group = b.dataset.group; main.querySelectorAll('[data-group]').forEach(x => x.classList.toggle('on', x === b)); drawRoster(); });
+    $('rosOpen').onclick = () => main.querySelectorAll('#rosBody details').forEach(d => d.open = true); $('rosClose').onclick = () => main.querySelectorAll('#rosBody details').forEach(d => d.open = false);
+    $('rosPrint').onclick = () => printRoster(); drawRoster(); }
   main.querySelectorAll('[data-school]').forEach(inp => inp.onchange = () => { reg.schoolNames[inp.dataset.school] = inp.value.trim() || inp.value; save(); });
+  main.querySelectorAll('[data-schoolroster]').forEach(b => b.onclick = () => go('roster', { group:'school', rq: b.dataset.schoolroster }));
   main.querySelectorAll('[data-adj]').forEach(inp => inp.oninput = () => { reg.judges[+inp.dataset.adj] = inp.value; save(); });
-  $('bandsAuto').onclick = () => { REG_EVENTS.forEach(e => reg.bands[e.key] = autoBands(regAges(reg, e.key))); save(); render(); toast('Age groups re-split automatically.'); };
-  bindBands(reg);
-  $('genComps').onclick = async () => {
+  if ($('bandsAuto')) { $('bandsAuto').onclick = () => { REG_EVENTS.forEach(e => reg.bands[e.key] = autoBands(regAges(reg, e.key))); save(); render(); toast('Age groups re-split automatically.'); }; bindBands(reg); }
+  if ($('genComps')) $('genComps').onclick = async () => {
     const old = state.comps.filter(c => c.gen), scored = old.filter(c => Object.keys(c.scores||{}).length);
     if (old.length && !(await askConfirm('Rebuild competitions?', `This replaces the ${old.length} competitions made from registrations${scored.length ? ` — ${scored.length} of them already have scores, which will be lost` : ''}. Your other competitions stay.`, 'Rebuild'))) return;
     const made = generateComps(reg);
     state.comps = state.comps.filter(c => !c.gen && !(c.name === 'New competition' && !c.dancers.length)).concat(made);
     if (!getComp(state.liveId)) state.liveId = made[0] && made[0].id;
     if (!getComp(state.editId)) state.editId = made[0] && made[0].id;
-    if (!getComp(state.liveId)) state.liveId = made[0] && made[0].id;
     save(); render(); toast(`${made.length} competitions created.`);
   };
   if ($('prSat')) { $('prSat').onclick = () => printLineups(sortedGen().filter(c => c.gen.day === 'Sat')); $('prSun').onclick = () => printLineups(sortedGen().filter(c => c.gen.day === 'Sun')); $('prSheets').onclick = () => printSheets(sortedGen()); }
@@ -1849,7 +1850,88 @@ function renderRegistration(){
   if ($('bulkGo')) $('bulkGo').onclick = () => { const k = $('bulkEv').value, sid = $('bulkSes').value; let n = 0; state.comps.forEach(c => { if (c.gen && c.gen.key === k) { c.session = sid; n++; } }); save(); render(); toast(`${n} competitions moved to ${sessions().find(x => x.id===sid).name}.`); };
   main.querySelectorAll('[data-redraw]').forEach(b => b.onclick = () => { const c = getComp(b.dataset.redraw); redrawComp(c); save(); render(); toast('New line-up drawn.'); });
   main.querySelectorAll('[data-lu]').forEach(b => b.onclick = () => printLineups([getComp(b.dataset.lu)]));
-  drawRegRows();
+}
+function regSubHTML(sub, reg, iss, comps, evRows){
+  if (sub === 'check') return `<h3 class="fh">Needs a look</h3>
+    ${!(iss.ocNoModern.length || iss.noEvents.length || iss.unknown.length || iss.dupes.length || iss.rules.length) ? '<div class="pill ok">Nothing to fix</div>' : ''}
+    <ul class="checkList">
+      ${iss.ocNoModern.length ? `<li class="warn"><b>${iss.ocNoModern.length} Open Championship dancer${iss.ocNoModern.length>1?'s':''} without a modern set name</b> — needed for the line-up order and heavy/light rounds. <button class="mini" data-filter="modern">Fix them ▸</button></li>` : ''}
+      ${iss.unknown.length ? `<li class="warn"><b>${iss.unknown.length}</b> with an event the app didn’t recognize. <button class="mini" data-filter="unknown">Show them ▸</button></li>` : ''}
+      ${iss.rules.length ? `<li class="warn"><b>${iss.rules.length} CRDM rule check${iss.rules.length>1?'s':''}</b> to confirm:<ul class="rl">${iss.rules.map(r => `<li><b>${r.d.no} ${esc(r.d.name)}</b> — ${esc(r.msg)}</li>`).join('')}</ul></li>` : ''}
+      ${iss.noEvents.length ? `<li><b>${iss.noEvents.length}</b> registered with no events: ${iss.noEvents.map(d => esc(d.name)).join(', ')}</li>` : ''}
+      ${iss.dupes.length ? `<li>${iss.dupes.length} dancer${iss.dupes.length>1?'s were':' was'} registered twice — merged into one, with all their events: ${iss.dupes.map(d => esc(d.name)).join(', ')}</li>` : ''}
+      <li>Tick <b>Boy</b> on the Dancers tab for boys — they dance the Reel as their light round (Open Championship and Premiere Prizes). <button class="mini" data-filter="oc">Open Championship dancers ▸</button></li>
+    </ul>`;
+  if (sub === 'dancers') return `<h3 class="fh">Dancers <span class="muted">— numbers are in registration order; set modern sets and tick boys here</span></h3>
+    <div class="row" style="align-items:center"><input id="regQ" placeholder="Search name, number or school" value="${esc(regView.q)}" style="flex:1;min-width:200px">
+      <select id="regF"><option value="all">All dancers</option><option value="oc" ${regView.filter==='oc'?'selected':''}>Open Championship</option><option value="modern" ${regView.filter==='modern'?'selected':''}>Missing modern set</option><option value="boys" ${regView.filter==='boys'?'selected':''}>Boys</option><option value="unknown" ${regView.filter==='unknown'?'selected':''}>Unrecognized events</option></select></div>
+    <div class="tblwrap regTblWrap"><table class="tbl regTbl"><thead><tr><th>No.</th><th>Dancer</th><th class="num">Age</th><th class="hide-m">School</th><th>Events</th><th>Modern set (OC)</th><th>Boy</th></tr></thead><tbody id="regBody"></tbody></table></div>`;
+  if (sub === 'roster') { const g = regView.group || 'all';
+    return `<h3 class="fh">Roster</h3>
+    <div class="row" style="align-items:center;gap:8px"><div class="seg">${[['all','All'],['school','School'],['age','Age'],['event','Event'],['comp','Competition']].map(([k,l]) => `<button data-group="${k}" class="${k===g?'on':''}" ${k==='comp' && !comps.length ? 'disabled title="Create competitions first"' : ''}>${l}</button>`).join('')}</div>
+      <input id="rosQ" placeholder="Search name, number or school" value="${esc(regView.rq||'')}" style="flex:1;min-width:180px">
+      <button id="rosOpen" class="mini">Expand all</button><button id="rosClose" class="mini">Collapse all</button><button id="rosPrint">🖨 Print this view</button></div>
+    <div id="rosBody"></div>`; }
+  if (sub === 'schools') { const counts = {}; reg.dancers.forEach(d => { const s = schoolOf(reg,d); counts[s] = (counts[s]||0) + 1; });
+    return `<h3 class="fh">Schools <span class="muted">— tap a school to see its dancers</span></h3>
+    <div class="schoolGrid">${Object.entries(counts).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).map(([s,n]) => `<button class="schoolCard" data-schoolroster="${esc(s)}"><b>${esc(s)}</b><span>${n} dancer${n>1?'s':''} ▸</span></button>`).join('')}</div>
+    ${iss.merges.length ? `<h3 class="fh" style="margin-top:18px">Merged spellings <span class="muted">— edit the name used on line-ups if needed</span></h3>
+      ${iss.merges.map(([k, v]) => `<div class="mergeRow"><input data-school="${esc(k)}" value="${esc(reg.schoolNames[k])}"><span class="muted">← ${Object.entries(v).map(([n,c]) => `“${esc(n)}” ×${c}`).join(', ')}</span></div>`).join('')}` : ''}`; }
+  if (sub === 'ages') return `<div class="stepHead"><h3 class="fh" style="margin:0">Age groups <span class="muted">— tap between ages to split or join; aim for 6+ per group. Ages are on the day of the event.</span></h3><div class="spacer"></div><button id="bandsAuto">Auto-split all</button></div>
+    <div class="bandList">${evRows.map(({e,n}) => bandRowHTML(reg, e, n)).join('')}</div>`;
+  return `<h3 class="fh">Competitions & line-ups</h3>
+    <div class="row"><label>Adjudicator 1 <input data-adj="0" value="${esc(reg.judges[0]||'')}"></label><label>Adjudicator 2 <input data-adj="1" value="${esc(reg.judges[1]||'')}"></label><label>Adjudicator 3 <input data-adj="2" value="${esc(reg.judges[2]||'')}"></label>
+      <span class="muted" style="padding-bottom:6px">Per CRDM rules: Open, Preliminary and Premiere Prize competitions use all three; Awards and solos use one (Adjudicator 1). Change any competition on its Setup tab.</span></div>
+    <div class="row"><button id="genComps" class="primary">${comps.length ? '↻ Rebuild competitions & line-ups' : '✓ Create competitions & line-ups'}</button>
+      ${comps.length ? `<button id="prSat">🖨 Saturday line-ups</button><button id="prSun">🖨 Sunday line-ups</button><button id="prSheets">🖨 Score sheets — all</button>` : ''}</div>
+    ${comps.length ? `<div class="row bulkRow"><span class="muted">Put every</span><select id="bulkEv">${REG_EVENTS.filter(e => comps.some(c => c.gen.key===e.key)).map(e => `<option value="${e.key}">${esc(e.label)}</option>`).join('')}</select><span class="muted">competition into</span><select id="bulkSes">${sessions().map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button id="bulkGo">Apply</button><span class="muted">Edit blocks under Settings.</span></div>` : ''}
+    ${comps.length ? genSummaryHTML(comps) : '<div class="muted">This creates one competition per event and age group, with the dancers in line-up order: hornpipe modern sets first, then treble jig, and no two dancers from the same school back to back.</div>'}`;
+}
+/* ---------- roster ---------- */
+function rosterGroups(){
+  const reg = state.reg, g = regView.group || 'all', q = (regView.rq || '').trim().toLowerCase();
+  const match = d => !q || `${d.no} ${d.name} ${schoolOf(reg,d)}`.toLowerCase().includes(q);
+  const sat = d => ageOn(d.dob, '2026-11-21') ?? d.age;
+  const byNo = (a,b) => a.no - b.no;
+  if (g === 'all') return [{ title:'All dancers', list: reg.dancers.filter(match).sort(byNo) }];
+  if (g === 'school') { const m = {}; reg.dancers.filter(match).forEach(d => (m[schoolOf(reg,d)] = m[schoolOf(reg,d)] || []).push(d));
+    return Object.entries(m).sort((a,b) => a[0].localeCompare(b[0])).map(([t,l]) => ({ title:t, list:l.sort(byNo) })); }
+  if (g === 'age') { const m = {}; reg.dancers.filter(match).forEach(d => (m[sat(d)] = m[sat(d)] || []).push(d));
+    return Object.entries(m).sort((a,b) => a[0]-b[0]).map(([t,l]) => ({ title:`Age ${t}`, list:l.sort(byNo) })); }
+  if (g === 'event') return REG_EVENTS.map(e => ({ title:e.label, sub: e.day === 'Sat' ? 'Saturday' : 'Sunday', list: regDancersIn(reg, e.key).filter(match).sort((a,b) => ageFor(a,e.key) - ageFor(b,e.key) || a.no - b.no), ev:e.key })).filter(x => x.list.length);
+  // by competition, in line-up order
+  const byRid = new Map(reg.dancers.map(d => [d.id, d]));
+  return sortedGen().map(c => ({ title:c.name, sub: sessionOf(c) ? sessionOf(c).name : (c.gen.day === 'Sat' ? 'Saturday' : 'Sunday'), comp:c,
+    list: c.dancers.filter(x => !x.dnd).map(x => byRid.get(x.rid)).filter(Boolean).filter(match) })).filter(x => x.list.length);
+}
+function drawRoster(){
+  const reg = state.reg, body = document.getElementById('rosBody'); if (!body) return;
+  const groups = rosterGroups(), g = regView.group || 'all', single = groups.length === 1;
+  const evChips = d => d.events.map(k => `<span class="evc">${esc(regEvent(k).label)}</span>`).join('');
+  body.innerHTML = groups.map(gr => `<details class="rosGroup" ${single || (regView.rq||'').trim() ? 'open' : ''}><summary><b>${esc(gr.title)}</b>${gr.sub ? ` <span class="muted">${esc(gr.sub)}</span>` : ''}<span class="rosN">${gr.list.length}</span></summary>
+    <div class="tblwrap"><table class="tbl rosTbl"><thead><tr>${gr.comp ? '<th class="num">Order</th>' : ''}<th>No.</th><th>Dancer</th><th class="num">Age</th>${g === 'school' ? '' : '<th class="hide-m">School</th>'}${gr.comp || gr.ev ? (gr.comp && gr.comp.gen.key === 'oc' || gr.ev === 'oc' ? '<th>Modern set</th>' : '') : '<th>Events</th>'}</tr></thead><tbody>
+    ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td class="num muted">${i+1}${i % 2 === 0 ? ` <small>pair ${Math.floor(i/2)+1}</small>` : ''}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}${d.boy ? ' <span class="muted">(boy)</span>' : ''}</td><td class="num">${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob,'2026-11-21') ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td class="hide-m">${esc(schoolOf(reg,d))}</td>`}
+      ${gr.comp || gr.ev ? ((gr.comp && gr.comp.gen.key === 'oc') || gr.ev === 'oc' ? `<td>${d.modern && d.modern.name ? esc(d.modern.name) + (d.modern.speed ? ` <span class="muted">(${esc(d.modern.speed)})</span>` : '') : '<span class="warn">missing</span>'}</td>` : '') : `<td class="evs">${evChips(d)}</td>`}</tr>`).join('')}
+    </tbody></table></div></details>`).join('') || '<div class="muted">No dancers match.</div>';
+}
+function printRoster(){
+  const reg = state.reg, groups = rosterGroups(), g = regView.group || 'all', ev = state.settings.eventName;
+  const titles = { all:'All dancers', school:'By school', age:'By age', event:'By event', comp:'By competition (line-up order)' };
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Roster — ${titles[g]}</title><style>
+    @page { size: letter; margin: 0.5in; } body { margin:0; font-family: Arial, sans-serif; color:#111; font-size:10pt; }
+    .bar { padding:10px; background:#f4f6f9; border-bottom:1px solid #ddd; font-size:14px; } .bar button { font-size:15px; padding:6px 14px; margin-right:10px; } @media print { .bar { display:none; } }
+    .wrap { padding:0 0.1in; } h1 { font-size:15pt; margin:10px 0 2px; } .ev { color:#555; font-size:9pt; text-transform:uppercase; letter-spacing:.06em; }
+    h2 { font-size:12pt; margin:14px 0 4px; border-bottom:2px solid #3a1f63; padding-bottom:2px; } h2 span { font-weight:normal; color:#555; font-size:10pt; }
+    table { border-collapse:collapse; width:100%; } th { text-align:left; font-size:8.5pt; color:#555; border-bottom:1px solid #999; padding:3px 5px; } td { border-bottom:1px solid #ddd; padding:3px 5px; vertical-align:top; } tr { break-inside:avoid; }
+    ${g === 'school' ? 'section { break-before: page; } section:first-of-type { break-before:auto; }' : ''}
+  </style></head><body><div class="bar"><button onclick="print()">Print</button>${groups.length} group${groups.length>1?'s':''}${g === 'school' ? ' — each school starts on a new page' : ''}.</div><div class="wrap">
+    <div class="ev">${esc(ev)}</div><h1>Roster — ${titles[g]}</h1>
+    ${groups.map(gr => `<section><h2>${esc(gr.title)} <span>· ${gr.list.length} dancer${gr.list.length>1?'s':''}${gr.sub ? ' · ' + esc(gr.sub) : ''}</span></h2><table><thead><tr>${gr.comp ? '<th>#</th>' : ''}<th>No.</th><th>Dancer</th><th>Age</th>${g === 'school' ? '' : '<th>School</th>'}${gr.comp || gr.ev ? '' : '<th>Events</th>'}</tr></thead><tbody>
+      ${gr.list.map((d,i) => `<tr>${gr.comp ? `<td>${i+1}</td>` : ''}<td><b>${d.no}</b></td><td>${esc(d.name)}</td><td>${gr.ev ? ageFor(d, gr.ev) : (ageOn(d.dob,'2026-11-21') ?? d.age ?? '')}</td>${g === 'school' ? '' : `<td>${esc(schoolOf(reg,d))}</td>`}${gr.comp || gr.ev ? '' : `<td>${d.events.map(k => esc(regEvent(k).label)).join(', ')}</td>`}</tr>`).join('')}
+    </tbody></table></section>`).join('')}</div></body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return toast('The roster can’t open here — print it from your website or the laptop file.');
+  w.document.open(); w.document.write(html); w.document.close();
 }
 const sortedGen = () => { const sIdx = c => { const i = sessions().findIndex(x => x.id === c.session); return i < 0 ? 99 : i; };
   return state.comps.filter(c => c.gen).sort((a,b) => (a.gen.day === b.gen.day ? 0 : a.gen.day === 'Sat' ? -1 : 1) || sIdx(a) - sIdx(b) || a.gen.order - b.gen.order || a.gen.from - b.gen.from); };
