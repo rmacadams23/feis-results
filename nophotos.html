@@ -153,6 +153,23 @@
   .cam.flash { animation:camflash .9s; }
   @keyframes camflash { 0%{ transform:scale(1.35); box-shadow:0 0 0 6px rgba(20,108,67,.25);} 100%{ transform:none; box-shadow:none; } }
   .legend .cam { width:28px; height:20px; font-size:11px; }
+  .cfBody { flex:1; overflow:auto; display:grid; grid-template-columns:minmax(260px,360px) minmax(0,1fr); gap:16px; padding:16px; }
+  .cfLabel { background:#fafbfc; border:1px solid var(--line); border-radius:10px; padding:16px; align-self:start; }
+  .cfComp { font-size:24px; font-weight:800; color:var(--pri2); line-height:1.2; margin-top:2px; }
+  .cfJudge { font-size:18px; font-weight:700; margin-top:4px; }
+  .cfNos { font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .cfImg { overflow:auto; border:1px solid var(--line); border-radius:8px; background:#f1f3f5; }
+  .cfImg img { width:100%; display:block; }
+  .full footer .cfOk { padding:10px 18px; font-size:16px; }
+  @media (max-width:760px){ .cfBody { grid-template-columns:1fr; } .cfImg { max-height:45vh; } .cfComp { font-size:20px; } }
+  .cfJudges { display:flex; flex-direction:column; gap:6px; }
+  .cfJ { text-align:left; padding:10px 12px; border-radius:8px; display:flex; flex-direction:column; gap:1px; position:relative; }
+  .cfJ small { color:var(--muted); font-size:12px; } .cfJ b { font-size:17px; }
+  .cfJ.on { border:2px solid var(--pri); background:#e3f4ea; color:var(--ink); }
+  .cfJ.on b { color:var(--pri2); }
+  .cfHas { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--warn); font-weight:600; }
+  .labOk { background:#e3f4ea; color:var(--pri2); border-radius:8px; padding:10px 12px; margin-bottom:10px; }
+  .labOk small { color:var(--ink); }
   .tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .nm { display:none; }
   #pv { pointer-events:none; }
@@ -195,7 +212,7 @@
 </head>
 <body>
 <header class="bar">
-  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.8</span></div>
+  <div class="brand">☘ Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v1.11</span></div>
   <label class="muted">Editing&nbsp;<select id="editSel"></select></label>
   <button id="newComp">+ New competition</button>
   <nav id="tabs">
@@ -314,6 +331,109 @@ function shrinkPhoto(file, max, q){
     img.onerror = () => { URL.revokeObjectURL(url); rej(); };
     img.src = url;
   });
+}
+const shortName = c => c.name.replace(/^Demo — /,'');
+function confirmPhoto(c, j, url, lab, moved){   // returns {c, j} to save to, or null
+  return new Promise(res => {
+    const ov = document.createElement('div'); ov.className = 'full';
+    let cur = { id:c.id, j };
+    ov.innerHTML = `<header><h3>Which sheet is this?</h3></header>
+      <div class="cfBody">
+        <div class="cfLabel">
+          ${lab && lab.c ? `<div class="labOk">🏷 Label read: <b>${esc(shortName(lab.c))} · Adjudicator ${lab.j+1}</b>${moved ? '<br><small>This isn’t the sheet you tapped — the label wins. Change it below if that’s wrong.</small>' : ''}</div>`
+            : lab && lab.unknown ? `<div class="warn" style="margin-bottom:10px">🏷 This label was printed from a different device’s competition list, so it can’t be matched here. Pick the sheet below. (Tip: print labels from the device that does the scoring, or restore its backup on this one.)</div>`
+            : NO_PHOTOS ? '' : `<div class="muted" style="margin-bottom:10px">🏷 No sheet label found — pick it below.</div>`}
+          <label class="muted" style="display:block;font-weight:600;margin-bottom:4px">Competition</label>
+          <select id="cfComp" style="width:100%;font-size:16px;font-weight:700">${state.comps.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(shortName(x))}</option>`).join('')}</select>
+          <div class="muted" style="font-weight:600;margin:12px 0 4px">Adjudicator — match the name written on the sheet</div>
+          <div id="cfJudges" class="cfJudges"></div>
+          <div id="cfWarn"></div>
+          <div class="muted" style="margin-top:10px">Dancer numbers: <span id="cfNos" class="cfNos"></span></div>
+        </div>
+        <div class="cfImg"><img src="${url}" alt="New sheet photo"></div>
+      </div>
+      <footer><button class="cfNo">✕ Don’t save</button><div class="spacer"></div><button class="cfOk primary">✓ Save to <span id="cfTo"></span></button></footer>`;
+    document.body.appendChild(ov);
+    const draw = async () => {
+      const cc = getComp(cur.id); if (cur.j >= cc.judges.length) cur.j = 0;
+      const has = await Promise.all(cc.judges.map((_,k) => PhotoDB.get(photoKey(cc,k)).then(Boolean)));
+      ov.querySelector('#cfJudges').innerHTML = cc.judges.map((n,k) => `<button class="cfJ ${k===cur.j?'on':''}" data-k="${k}"><small>Adjudicator ${k+1}</small><b>${esc(n)}</b>${has[k]?'<span class="cfHas">📷 has photo</span>':''}</button>`).join('');
+      ov.querySelectorAll('.cfJ').forEach(bt => bt.onclick = () => { cur.j = +bt.dataset.k; draw(); });
+      ov.querySelector('#cfNos').textContent = live(cc).map(d => d.no).join(', ') || '—';
+      ov.querySelector('#cfWarn').innerHTML = has[cur.j] ? `<div class="warn" style="margin-top:8px"><b>Adjudicator ${cur.j+1} already has a photo</b> — saving will replace it.</div>` : '';
+      ov.querySelector('#cfTo').textContent = `${shortName(cc)} · Adj. ${cur.j+1}`;
+    };
+    ov.querySelector('#cfComp').onchange = e => { cur.id = e.target.value; cur.j = 0; draw(); };
+    draw();
+    ov.querySelector('.cfOk').onclick = () => { ov.remove(); res({ c:getComp(cur.id), j:cur.j }); };
+    ov.querySelector('.cfNo').onclick = () => { ov.remove(); res(null); };
+  });
+}
+/* ---------- Sheet labels (QR) ---------- */
+const labelPayload = (c, j) => `F1|${c.id}|${j}`;   // short = small, easy-to-read QR
+function readLabel(file){
+  return new Promise(res => {
+    if (typeof jsQR !== 'function') return res(null);
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      for (const max of [2400, 1600, 1000]) {
+        const k = Math.min(1, max/Math.max(img.width, img.height)), w = Math.round(img.width*k), h = Math.round(img.height*k);
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d', { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
+        const hit = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts:'dontInvert' });
+        if (hit && hit.data && hit.data.startsWith('F1|')) {
+          const [, id, j] = hit.data.split('|'); const c = getComp(id);
+          return res(c && +j < c.judges.length ? { c, j:+j } : { unknown: true });
+        }
+      }
+      res(null);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+function printLabels(comps){
+  const ev = state.settings.eventName;
+  const qrSvg = text => { const q = qrcode(0, 'Q'); q.addData(text); q.make(); return q.createSvgTag({ cellSize:4, margin:0, scalable:true }); };
+  const labels = comps.flatMap(c => c.judges.map((n,j) => `<div class="lab"><div class="qr">${qrSvg(labelPayload(c,j))}</div><div class="tx"><div class="ev">${esc(ev)}</div><div class="cp">${esc(shortName(c))}</div><div class="jd">Adjudicator ${j+1}: ${esc(n)}</div></div></div>`));
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Score sheet labels</title><style>
+    @page { size: letter; margin: 0.5in 0.19in; }
+    body { margin:0; font-family: Arial, sans-serif; }
+    .bar { padding:10px; background:#f4f6f9; border-bottom:1px solid #ddd; font-size:14px; } .bar button { font-size:15px; padding:6px 14px; margin-right:10px; }
+    @media print { .bar { display:none; } }
+    .sheet { display:grid; grid-template-columns: repeat(3, 2.625in); column-gap:0.125in; grid-auto-rows:1in; }
+    .lab { display:flex; align-items:center; gap:0.08in; padding:0.06in 0.1in; overflow:hidden; box-sizing:border-box; }
+    @media screen { .lab { outline:1px dashed #ccc; } }
+    .qr { width:0.86in; height:0.86in; flex:none; } .qr svg { width:100%; height:100%; display:block; }
+    .tx { min-width:0; line-height:1.15; } .ev { font-size:6.5pt; color:#555; text-transform:uppercase; letter-spacing:.03em; }
+    .cp { font-size:10pt; font-weight:bold; } .jd { font-size:8.5pt; }
+  </style></head><body><div class="bar"><button onclick="print()">Print</button>Fits Avery 5160 / 8160 address labels (30 per page). Stick one on the top of each adjudicator's sheet.</div><div class="sheet">${labels.join('')}</div></body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) return toast('Labels can’t open here — print them from your website or the laptop file.');
+  w.document.open(); w.document.write(html); w.document.close();
+}
+async function savePhoto(c, j, file){   // returns where it was saved, or null
+  const [u, lab] = await Promise.all([shrinkPhoto(file, 1800, 0.72), readLabel(file)]);
+  const to = await confirmPhoto(lab && lab.c ? lab.c : c, lab && lab.c ? lab.j : j, u, lab, lab && lab.c && (lab.c !== c || lab.j !== j));
+  if (!to) { toast('Photo not saved.'); return null; }
+  await PhotoDB.set(photoKey(to.c, to.j), u); return to;
+}
+function movePhotoDialog(c, j){
+  const opts = state.comps.flatMap(x => x.judges.map((n,k) => ({ id:x.id, k, label:`${shortName(x)} · Adjudicator ${k+1}: ${n}` }))).filter(o => !(o.id===c.id && o.k===j));
+  const ov = document.createElement('div'); ov.className='dlgOv';
+  ov.innerHTML = `<div class="dlg"><h3>Move this photo</h3><p>It’s currently on ${esc(shortName(c))} · Adjudicator ${j+1}. Where does it belong?</p>
+    <select id="mvTo" style="width:100%;margin-bottom:12px">${opts.map(o=>`<option value="${o.id}:${o.k}">${esc(o.label)}</option>`).join('')}</select>
+    <div class="dlgBtns"><button class="dlgNo">Cancel</button><button class="dlgOk primary">Move photo</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('.dlgNo').onclick = () => ov.remove();
+  ov.querySelector('.dlgOk').onclick = async () => {
+    const [id,k] = ov.querySelector('#mvTo').value.split(':'); const t = getComp(id);
+    const src = await PhotoDB.get(photoKey(c, j)); if (!src) { ov.remove(); return toast('Nothing to move.'); }
+    const there = await PhotoDB.get(photoKey(t, +k));
+    if (there) await PhotoDB.set(photoKey(c, j), there); else await PhotoDB.del(photoKey(c, j));
+    await PhotoDB.set(photoKey(t, +k), src);
+    ov.remove(); toast(there ? `Photos swapped with ${shortName(t)} · Adjudicator ${+k+1}.` : `Photo moved to ${shortName(t)} · Adjudicator ${+k+1}.`); loadPhoto();
+  };
 }
 function showImage(src, title){
   const ov = document.createElement('div'); ov.className = 'full';
@@ -656,7 +776,7 @@ function renderOverview(){
   state.comps.forEach(c => { const k = compStatus(c)[1]; counts[k] = (counts[k]||0)+1; });
   main.innerHTML = `
   <section class="card"><h2>All competitions <span class="muted">— where each one stands. Tap a sheet number to type it in.</span></h2>
-    ${photosOn() ? `<div class="hint">📷 <b>Sheets arriving in a stack?</b> Tap the camera under each sheet number to photograph it — you stay on this page, so you can snap them all one after another, then type them in later.</div>` : ''}
+    ${photosOn() ? `<div class="hint">📷 <b>Sheets arriving in a stack?</b> Tap the camera under any sheet number — or <label class="btnlike primaryLike" style="margin:0 4px">📷 Add sheet photo<input type="file" accept="image/*" capture="environment" id="ovCam" hidden></label> and pick which sheet it is after. You stay on this page, so you can snap a whole stack in any order.</div>` : ''}
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
     <div class="tblwrap"><table class="tbl ov"><thead><tr><th>Competition</th><th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
     ${state.comps.map(c => { const [st,k] = compStatus(c), D=live(c).length;
@@ -677,11 +797,17 @@ function renderOverview(){
   main.querySelectorAll('[data-live]').forEach(b => b.onclick = () => { state.liveId=b.dataset.live; state.tab='show'; save(); render(); pushDisplay(); scrollTo(0,0); });
   if (photosOn()) {
     main.querySelectorAll('[data-ph]').forEach(async el => { const [id,j]=el.dataset.ph.split(':'); const c=getComp(id); if (c && await getPhoto(c,+j)) el.classList.add('has'); });
+    const oc = document.getElementById('ovCam');
+    if (oc) oc.onchange = async () => { const f = oc.files[0]; if (!f) return;
+      const c0 = state.comps.find(c => compStatus(c)[1] !== 'done' && live(c).length) || state.comps[0];
+      try { const to = await savePhoto(c0, 0, f); if (to) { const tl = main.querySelector(`[data-ph="${to.c.id}:${to.j}"]`); if (tl) { tl.classList.add('has','flash'); setTimeout(()=>tl.classList.remove('flash'), 900); } toast(`📷 Saved: ${shortName(to.c)} · Adjudicator ${to.j+1}`); } }
+      catch(_) { toast('Could not save the photo on this device.'); }
+      oc.value = ''; };
     main.querySelectorAll('[data-cam]').forEach(inp => inp.onchange = async () => {
       const f = inp.files[0]; if (!f) return; const [id,j] = inp.dataset.cam.split(':'); const c = getComp(id);
       const lab = inp.closest('.cam'); lab.classList.add('busy');
-      try { const u = await shrinkPhoto(f, 1800, 0.72); await PhotoDB.set(photoKey(c, +j), u); lab.classList.add('has'); lab.classList.add('flash'); setTimeout(()=>lab.classList.remove('flash'), 900);
-        toast(`📷 Saved: ${c.name.replace(/^Demo — /,'')} · Adjudicator ${+j+1}`); }
+      try { const to = await savePhoto(c, +j, f); if (to) { const tl = main.querySelector(`[data-ph="${to.c.id}:${to.j}"]`) || lab; tl.classList.add('has','flash'); setTimeout(()=>tl.classList.remove('flash'), 900);
+        toast(`📷 Saved: ${shortName(to.c)} · Adjudicator ${to.j+1}`); } }
       catch(_) { toast('Could not save the photo on this device.'); }
       lab.classList.remove('busy'); inp.value = '';
     });
@@ -701,6 +827,7 @@ function renderSetup(){
       <label>Places to announce <input id="cP" type="number" min="0" style="width:150px" value="${c.places||''}" placeholder="auto: ${Math.ceil(live(c).length/2)} (top half)"></label>
     </div>
     <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${i+1} name <input data-judge="${i}" value="${esc(n)}"></label>`).join('')}</div>
+    ${NO_PHOTOS ? '' : `<div class="row"><button id="lblThis">🏷 Print sheet labels — this competition</button><button id="lblAll">🏷 Print sheet labels — all competitions</button><span class="muted" style="padding-bottom:6px">Stick one on each adjudicator's sheet; photos then file themselves.</span></div>`}
     <div class="row"><button id="dupComp">Duplicate setup for next competition</button><button id="delComp" class="danger">Delete this competition</button></div>
   </section>
   <section class="card"><h2>Dancers <span class="muted">— ${c.dancers.length} entered, listed in the order they appear on the score grid</span></h2>
@@ -732,6 +859,7 @@ function renderSetup(){
       if (/^dancer/i.test(no)) return; c.dancers.push({id:uid(),no,name:name||'',school:school||''}); added++; });
     save(); render(); pushDisplay(); if (added) toast(`Added ${added} dancers.`);
   };
+  if ($('lblThis')) { $('lblThis').onclick = () => printLabels([c]); $('lblAll').onclick = () => printLabels(state.comps.filter(x => !isDemo(x) || isDemo(c))); }
   $('delComp').onclick = async () => {
     if (!(await askConfirm(`Delete “${c.name}”?`, 'This removes the competition and all its scores. It can’t be undone.'))) return;
     c.judges.forEach((_,j) => PhotoDB.del(photoKey(c,j)));
@@ -873,7 +1001,7 @@ async function loadPhoto(){
   const fileIn = `<input type="file" accept="image/*" capture="environment" id="photoIn" hidden>`;
   pane.innerHTML = url
     ? `<div class="stepHead"><span class="step">1</span><b>Score sheet</b><div class="spacer"></div>
-         <button id="photoBig">⤢ Enlarge</button><label class="btnlike">📷 Retake${fileIn}</label></div>
+         <button id="photoBig">⤢ Enlarge</button><button id="photoMove">Move…</button><label class="btnlike">📷 Retake${fileIn}</label></div>
        <div class="sheetImg"><img src="${url}" alt="Score sheet photo"></div>`
     : `<div class="stepHead"><span class="step">1</span><b>Score sheet</b></div>
        <label class="sheetEmpty">${fileIn}<div style="font-size:34px">📷</div><b>Take a photo of Adjudicator ${j+1}'s sheet</b>
@@ -881,9 +1009,10 @@ async function loadPhoto(){
          <span class="btnlike primaryLike">Take or choose photo</span></label>`;
   document.getElementById('photoIn').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { const u = await shrinkPhoto(f, 1800, 0.72); await PhotoDB.set(photoKey(c, j), u); toast('Sheet photo saved.'); loadPhoto(); }
+    try { const to = await savePhoto(c, j, f); if (to) { if (to.c===c && to.j===j) toast('Sheet photo saved.'); else toast(`Saved to ${shortName(to.c)} · Adjudicator ${to.j+1}.`); loadPhoto(); } }
     catch(_) { toast('Could not save the photo on this device.'); }
   };
+  const mv = document.getElementById('photoMove'); if (mv) mv.onclick = async () => { if (!(await PhotoDB.get(photoKey(c, j)))) return toast('The sample sheet can’t be moved — take a real photo first.'); movePhotoDialog(c, j); };
   const big = document.getElementById('photoBig'); if (big) big.onclick = () => showImage(url, `Adjudicator ${j+1}: ${c.judges[j]} — score sheet`);
 }
 function summaryHTML(c){
