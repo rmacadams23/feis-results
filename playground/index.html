@@ -2724,7 +2724,7 @@ function levelColorsDlg(){
   ov.querySelector('.dlgNo').onclick = () => { delete state.settings.levelColors; save(); ov.remove(); render(); };
   ov.querySelector('.dlgOk').onclick = () => { ov.remove(); render(); }; ov.onclick = e => { if (e.target === ov) { ov.remove(); render(); } };
 }
-const OV_TIME = true;   // Event Scoring 'By time' view (the live build turns it off until it's approved)
+const OV_TIME = false;   // Event Scoring 'By time' view (the live build turns it off until it's approved)
 let ovView = (() => { try { return localStorage.getItem(KEY + '.ovView') || 'time'; } catch (_) { return 'time'; } })(), ovTDay = null, ovTStage = 'all';
 function ovTimeRows(){
   const day = ovTDay || pickDay(), { items } = schedItems(day), tm = schedTimes(day, items), ms = multiStage();
