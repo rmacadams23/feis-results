@@ -138,6 +138,7 @@
   .pill.onair:hover { background:#8f1c13; }
   .chips { display:flex; gap:5px; }
   .chip { min-width:38px; height:30px; padding:0 7px; border-radius:15px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:2px; border:1px solid #d5dbe1; background:#fff; color:#8a96a3; }
+  .chip { position:relative; } .rsegs { position:absolute; left:6px; right:6px; bottom:3px; display:flex; gap:2px; } .rsegs i { flex:1; height:4px; border-radius:2px; background:#dfe4ea; } .rsegs i.p { background:#7fa9dc; } .rsegs i.f { background:#e08a1e; }
   .chip.part { background:#e7f0fb; border-color:#bcd3f0; color:#1f4f8a; }
   .chip.ent { background:#fff1e0; border-color:#f3cf9f; color:#9a4a00; }
   .chip.ver { background:var(--ok); border-color:var(--ok); color:#fff; }
@@ -2664,8 +2665,10 @@ function ovRowHTML(c, pre = '', tag = '', cell = null, round = null){ const [st,
         <td class="num hide-m">${D}</td>
         <td><div class="chips">${c.judges.map((n,j)=>{ const rr = round != null && c.entry !== 'place', e = rr ? judgeMarked(c,j,round) : judgeComplete(c,j), any = judgeMarked(c,j), ver=isVerified(c,j);
           const cls = ver?'ver':(D&&e===D?'ent':(e>0||(!rr&&any>0)?'part':'none'));
+          const multi = !rr && c.entry !== 'place' && (c.rounds || 1) > 1 && !ver, rs = multi ? Array.from({ length: c.rounds }, (_, i) => judgeMarked(c, j, i)) : [];
+          const segs = multi ? `<span class="rsegs">${rs.map(x => `<i class="${D && x === D ? 'f' : x ? 'p' : ''}"></i>`).join('')}</span>` : '', segT = rs.map((x, i) => `R${i+1} ${x}/${D}`).join(', ');
           const tip = (rr ? `Round ${round+1}: ` : '') + (ver?'verified':(D&&e===D?(rr?'all marks in':'entered, not read back'):(e>0?`${e}/${D} entered`:!rr&&any>0?`some marks in (${any}/${D} dancers)`:'not entered')));
-          return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}${photosOn() ? `<span class="slot awSlot"><label class="cam" data-ph="${c.id}:aw" title="Photo of the award sheet after awards — kept on file to compare with the adjudicators' sheets"><span>🏅</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:aw" hidden></label></span>` : ''}</div></td>
+          return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}${segs ? ' · ' + segT : ''}">${j+1}${segs}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}${photosOn() ? `<span class="slot awSlot"><label class="cam" data-ph="${c.id}:aw" title="Photo of the award sheet after awards — kept on file to compare with the adjudicators' sheets"><span>🏅</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:aw" hidden></label></span>` : ''}</div></td>
         <td><span class="st ${k}">${st}</span> <span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
         <td class="num"><div class="btns"><button class="mini" data-details="${c.id}" title="Competition details">⚙</button><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }
 // Level colours (Feis setup can change them; used in Event Scoring → By time)
