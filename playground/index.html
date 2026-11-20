@@ -183,7 +183,7 @@
   .ov tr.ovRow[style*="--lv"] td:first-child { box-shadow: inset 6px 0 0 var(--lv); padding-left:14px; }
   .lvTag { display:inline-block; color:#fff; font-weight:700; font-size:12px; padding:3px 8px; border-radius:999px; white-space:nowrap; text-shadow:0 1px 1px rgba(0,0,0,.25); }
   .rdTag { display:inline-block; margin-left:8px; font-size:13px; padding:2px 8px; border-radius:6px; border:1.5px solid #1d3550; color:#1d3550; background:#fff; white-space:nowrap; }
-  td.ovAge { white-space:nowrap; font-weight:600; }
+  .rdDance { font-weight:600; color:#33404d; } td.ovAge { white-space:nowrap; font-weight:600; }
   tr.ovHead td { background:#eef3f8; font-weight:700; color:#1d3550; padding:6px 8px; } tr.ovNote td { color:#6b7785; background:#fbfbfb; }
   tr.ovNow td { background:#fff6d9 !important; } tr.ovNow td.ovT b::before { content:'▶ '; color:#e0a100; } tr.ovPair td { border-top:1px dashed #d5dde6; }
   tr.ovRow { cursor:pointer; } tr.ovRow:hover td { background:#f6f9fc; }
@@ -2704,8 +2704,8 @@ function ovTimeRows(){
     const lvl = `<td class="ovLv"><span class="lvTag" style="background:${col};color:${lightBg(col) ? '#1b1b1b' : '#fff'};text-shadow:none">${esc(L ? L[2] : 'Other')}</span></td>`;
     const stg = ms ? `<td class="ovStg">${esc(stageName(t.sid))}${t.lane !== 'full' && isSplit(t.sid) ? `<small>Half ${t.lane}</small>` : ''}</td>` : '';
     const rnd = r == null ? '' : `<span class="rdTag"><b>Round ${r + 1}</b> of ${nR}</span>`;
-    const dance = r != null ? roundShort(c, r) : (np.comp || (L ? L[1] : shortName(c)));
-    const cell = `<td><b>${esc(dance)}</b>${rnd}<span class="nm">${esc(np.age)} · ${live(c).length} dancers</span></td><td class="ovAge hide-m">${esc(np.age)}</td>`;
+    const ev = np.comp || ({ ocp:'Premiere Prize', oc:'Championship', pc:'Championship' })[lk] || (L ? L[1] : shortName(c));
+    const cell = `<td><b>${esc(ev)}</b>${r != null && roundShort(c, r) !== ev ? ` <span class="rdDance">— ${esc(roundShort(c, r))}</span>` : ''}${rnd}<span class="nm">${esc(np.age)} · ${live(c).length} dancers</span></td><td class="ovAge hide-m">${esc(np.age)}</td>`;
     rows += ovRowHTML(c, tcell + stg + lvl, '', cell).replace('class="ovRow"', `class="ovRow${isNow ? ' ovNow' : ''}${t.pairWith && t.lane === 'B' ? ' ovPair' : ''}" style="--lv:${col}"`);
   });
   return rows || `<tr><td colspan="${cols}" class="muted">Nothing on the running order for ${esc(dayLabel(day))} yet — build it in Feis setup → Running order.</td></tr>`;
@@ -2725,7 +2725,7 @@ function renderOverview(){
     ${OV === 'time' ? `<div class="seg">${schedDays().map(d => `<button class="${(ovTDay || pickDay()) === d ? 'on' : ''}" data-ovd="${d}">${esc(dayLabel(d))}</button>`).join('')}</div>${multiStage() ? `<label class="muted" style="flex-direction:row;align-items:center;gap:8px">Stage <select id="ovStg"><option value="all">All stages</option>${stages().map(x => `<option value="${x.id}" ${ovTStage === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}<span class="muted">Times are estimates from the running order</span><button class="mini" id="ovColors" title="Change the level colours">🎨 Level colours</button>`
     : `<label class="muted" style="flex-direction:row;align-items:center;gap:8px">Show <select id="ovDay">${filterOptionsHTML(ovDay)}</select></label><span class="muted">${ovComps().length} of ${state.comps.length}</span>`}
 <div class="spacer"></div>${ovComps().some(isPosted) ? `<button id="ovPrintPosted">🖨 Print results — all finished “posted” competitions shown</button>` : ''}</div>
-    <div class="tblwrap"><table class="tbl ov"><thead><tr>${OV === 'time' ? `<th>Time</th>${multiStage() ? '<th>Stage</th>' : ''}<th>Level</th>` : ''}<th>${OV === 'time' ? 'Dance' : 'Competition'}</th>${OV === 'time' ? '<th class="hide-m">Age</th>' : ''}<th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
+    <div class="tblwrap"><table class="tbl ov"><thead><tr>${OV === 'time' ? `<th>Time</th>${multiStage() ? '<th>Stage</th>' : ''}<th>Level</th>` : ''}<th>Competition</th>${OV === 'time' ? '<th class="hide-m">Age</th>' : ''}<th class="num hide-m">Dancers</th><th>Score sheets</th><th>Status</th><th></th></tr></thead><tbody>
     ${OV === 'time' ? ovTimeRows() : ovComps().map(c => ovRowHTML(c)).join('')}
     </tbody></table></div>
     <div class="legend muted"><span class="chip none">1</span> not in yet <span class="chip part">1</span> partly typed <span class="chip ent">1</span> typed, not read back <span class="chip ver">1</span> verified${photosOn() ? ' · <span class="cam">📷</span> no photo yet <span class="cam has">📷</span> photo on file' : ''}</div>
