@@ -837,6 +837,10 @@ function judgeResults(c, j){
   }
   return out;
 }
+function judgeMarked(c, j, round = null){   // dancers with at least one mark from this adjudicator (or with this round's mark)
+  const sc = c.scores[j] || {};
+  return live(c).filter(d => { const x = sc[d.id]; if (!x) return false; if (c.entry === 'place') return x.place !== '' && x.place != null;
+    const r = x.r || []; return round == null ? r.slice(0, c.rounds).some(v => v !== '' && v != null && !isNaN(num(v))) : r[round] !== '' && r[round] != null && !isNaN(num(r[round])); }).length; }
 function judgeComplete(c, j){ const r = judgeResults(c,j); return live(c).filter(d => r[d.id].pts!=null).length; }
 function overall(c){
   const jr = c.judges.map((_,j) => judgeResults(c,j));
@@ -1913,7 +1917,7 @@ function compStatus(c){
   if (v.screen==='results' && L && v.resStep>=L) return ['Announced','done'];
   if (full===J && vc===J) return [isPosted(c) ? 'Ready to print' : 'Ready to announce','ready'];
   if (full===J) return [`Needs read-back · ${vc}/${J} checked`,'warn'];
-  if (ent.some(n=>n>0)) return [`Entering sheets · ${full}/${J} in`,'work'];
+  if (ent.some(n=>n>0) || c.judges.some((_,j)=>judgeMarked(c,j)>0)) return [`Entering sheets · ${full}/${J} in`,'work'];
   return ['Waiting for sheets','grey'];
 }
 function announceBtn(c, big){
@@ -2655,12 +2659,12 @@ function deletePicker(){
   ov.querySelector('.dlgNo').onclick = () => ov.remove(); ov.onclick = e => { if (e.target === ov) ov.remove(); };
   ov.querySelector('.dlgOk').onclick = () => { const ids = boxes().filter(cb => cb.checked).map(cb => cb.dataset.pc); ov.remove(); if (ids.length) deleteComps(ids); };
 }
-function ovRowHTML(c, pre = '', tag = '', cell = null){ const [st,k] = compStatus(c), D=live(c).length;
+function ovRowHTML(c, pre = '', tag = '', cell = null, round = null){ const [st,k] = compStatus(c), D=live(c).length;
       return `<tr class="ovRow" data-row="${c.id}">${pre}${cell != null ? cell.replace('</td>', `${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''}</td>`) : `<td><b>${esc(c.name) || '<span class="muted">(no name)</span>'}</b>${sessionOf(c) ? `<span class="sesTag">${esc(sessionOf(c).name)}</span>` : ''}${multiStage() && c.gen ? `<span class="stgTag">${esc(stageName(compStage(c)))}</span>` : ''}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''}${tag}<span class="nm">${D} dancers</span></td>`}
         <td class="num hide-m">${D}</td>
-        <td><div class="chips">${c.judges.map((n,j)=>{ const e=judgeComplete(c,j), ver=isVerified(c,j);
-          const cls = ver?'ver':(D&&e===D?'ent':(e>0?'part':'none'));
-          const tip = ver?'verified':(D&&e===D?'entered, not read back':(e>0?`${e}/${D} entered`:'not entered'));
+        <td><div class="chips">${c.judges.map((n,j)=>{ const rr = round != null && c.entry !== 'place', e = rr ? judgeMarked(c,j,round) : judgeComplete(c,j), any = judgeMarked(c,j), ver=isVerified(c,j);
+          const cls = ver?'ver':(D&&e===D?'ent':(e>0||(!rr&&any>0)?'part':'none'));
+          const tip = (rr ? `Round ${round+1}: ` : '') + (ver?'verified':(D&&e===D?(rr?'all marks in':'entered, not read back'):(e>0?`${e}/${D} entered`:!rr&&any>0?`some marks in (${any}/${D} dancers)`:'not entered')));
           return `<span class="slot"><button class="chip ${cls}" data-go="${c.id}" data-j="${j}" title="Adjudicator ${j+1}: ${esc(n)} — ${tip}">${j+1}</button>${photosOn() ? `<label class="cam" data-ph="${c.id}:${j}" title="Photo of Adjudicator ${j+1}'s sheet"><span>📷</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:${j}" hidden></label>` : ''}</span>`; }).join('')}${photosOn() ? `<span class="slot awSlot"><label class="cam" data-ph="${c.id}:aw" title="Photo of the award sheet after awards — kept on file to compare with the adjudicators' sheets"><span>🏅</span><input type="file" accept="image/*" capture="environment" data-cam="${c.id}:aw" hidden></label></span>` : ''}</div></td>
         <td><span class="st ${k}">${st}</span> <span class="styleTag">${isPosted(c) ? 'US · posted' : isUS(c) ? 'US · stage' : 'Irish'}</span></td>
         <td class="num"><div class="btns"><button class="mini" data-details="${c.id}" title="Competition details">⚙</button><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }
@@ -2706,7 +2710,7 @@ function ovTimeRows(){
     const rnd = r == null ? '' : `<span class="rdTag"><b>Round ${r + 1}</b> of ${nR}</span>`;
     const ev = np.comp || ({ ocp:'Premiere Prize', oc:'Championship', pc:'Championship' })[lk] || (L ? L[1] : shortName(c));
     const cell = `<td><b>${esc(ev)}</b>${r != null && roundShort(c, r) !== ev ? ` <span class="rdDance">— ${esc(roundShort(c, r))}</span>` : ''}${rnd}<span class="nm">${esc(np.age)} · ${live(c).length} dancers</span></td><td class="ovAge hide-m">${esc(np.age)}</td>`;
-    rows += ovRowHTML(c, tcell + stg + lvl, '', cell).replace('class="ovRow"', `class="ovRow${isNow ? ' ovNow' : ''}${t.pairWith && t.lane === 'B' ? ' ovPair' : ''}" style="--lv:${col}"`);
+    rows += ovRowHTML(c, tcell + stg + lvl, '', cell, r).replace('class="ovRow"', `class="ovRow${isNow ? ' ovNow' : ''}${t.pairWith && t.lane === 'B' ? ' ovPair' : ''}" style="--lv:${col}"`);
   });
   return rows || `<tr><td colspan="${cols}" class="muted">Nothing on the running order for ${esc(dayLabel(day))} yet — build it in Feis setup → Running order.</td></tr>`;
 }
@@ -2885,7 +2889,7 @@ function renderCompSheets(c){
     <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ ${backLabel()}</button><button id="toDet" title="Competition details">⚙ Details</button><h2 style="margin:0">${esc(c.name)}${c.id===state.liveId?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers in the competition’s ⚙ Details (or build competitions from Registration) first.</div>'}
     <div class="jCards">${c.judges.map((n,j) => { const e = judgeComplete(c,j), ver = isVerified(c,j), vv = c.verified?.[j];
-      const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : ['Not typed yet','grey']));
+      const [st,k] = ver ? [`Verified ✓${vv.by?' by '+esc(vv.by):''}`,'ready'] : (D && e===D ? ['Typed — needs read-back','warn'] : (e>0 ? [`${e} of ${D} typed`,'work'] : judgeMarked(c,j)>0 ? [`Some marks typed (${judgeMarked(c,j)} of ${D} dancers)`,'work'] : ['Not typed yet','grey']));
       return `<button class="jCard" data-open="${j}"><div class="jcThumb" data-thumb="${j}">${photosOn() ? '📷' : (j+1)}</div>
         <div class="jcTx"><small>Adjudicator ${j+1}</small><b>${esc(n)}</b><span class="st ${k}">${st}</span></div><span class="jcGo">Open ▸</span></button>`; }).join('')}
       ${photosOn() ? `<label class="jCard awCard" title="Photograph the award sheet after awards — kept on file to compare with the adjudicators' sheets"><div class="jcThumb" data-awthumb>🏅</div>
