@@ -255,7 +255,7 @@
   .schT { font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); min-width:70px; display:inline-block; }
   .schSt { display:flex; flex-direction:column; align-items:flex-end; gap:4px; } .cnts { display:flex; gap:6px; }
   .cnt { font-size:12px; padding:2px 7px; border-radius:10px; border:1px solid #d5dbe1; background:#fff; color:#6b7785; white-space:nowrap; } .cnt b { color:#33404d; }
-  .cnt.part { background:#fff6cc; border-color:#f2c200; } .cnt.full { background:#e3f4ea; border-color:var(--ok); } .cnt.full b { color:#1d6b3a; }
+  .cnt.cSome { background:#fff6cc; border-color:#f2c200; } .cnt.cAll { background:#e3f4ea; border-color:var(--ok); } .cnt.cAll b { color:#1d6b3a; }
   .schName { display:flex; flex-direction:column; } .schName small { color:var(--muted); font-size:12px; } .schGo { display:flex; gap:6px; align-items:center; }
   .pill.nextP { background:var(--pri); color:#fff; font-size:10px; letter-spacing:.05em; }
   .schEd { display:flex; flex-direction:column; gap:4px; } .schRow { display:flex; gap:8px; align-items:center; padding:5px 6px; border:1px solid var(--line); border-radius:8px; background:#fff; flex-wrap:wrap; }
@@ -1952,7 +1952,7 @@ const isPosted = c => isUS(c) && c.announce === 'post';   // results printed for
 // Status for one round of a championship on the schedule: how many adjudicators' sheets are in for THAT round
 // Schedule: 📷 photos on file / 📋 sheets typed in (for this round), per adjudicator
 function sheetCounts(c, r){
-  const D = live(c).length, J = c.judges.length, tz = n => n === J ? 'full' : n ? 'part' : '';
+  const D = live(c).length, J = c.judges.length, tz = n => n === J ? 'cAll' : n ? 'cSome' : '';
   const typed = c.judges.filter((_, j) => r != null && c.entry !== 'place' ? judgeMarked(c, j, r) === D : judgeComplete(c, j) === D).length;
   const ph = photosOn() ? `<span class="cnt" data-phc="${c.id}" title="Adjudicators' sheet photos on file">📷 <b>–</b>/${J}</span>` : '';
   return `<span class="cnts">${ph}<span class="cnt ${tz(typed)}" title="Adjudicators' sheets typed in${r != null ? ' for Round ' + (r + 1) : ''}">📋 <b>${typed}</b>/${J}</span></span>`;
@@ -1960,7 +1960,7 @@ function sheetCounts(c, r){
 async function fillPhotoCounts(root){
   for (const el of root.querySelectorAll('[data-phc]')) { const c = getComp(el.dataset.phc); if (!c) continue; let n = 0;
     for (let j = 0; j < c.judges.length; j++) { const k = photoKey(c, j); if ((Sync && Sync.remotePhotos[k]) || await PhotoDB.get(k)) n++; }
-    if (!document.body.contains(el)) return; const J = c.judges.length; el.querySelector('b').textContent = n; el.classList.toggle('full', n === J); el.classList.toggle('part', n > 0 && n < J); }
+    if (!document.body.contains(el)) return; const J = c.judges.length; el.querySelector('b').textContent = n; el.classList.toggle('cAll', n === J); el.classList.toggle('cSome', n > 0 && n < J); }
 }
 function roundStatus(c, r){
   const whole = compStatus(c); if (r == null || c.entry === 'place' || ['ready','done','warn'].includes(whole[1])) return whole;
