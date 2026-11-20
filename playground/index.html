@@ -2666,7 +2666,7 @@ function ovRowHTML(c, pre = '', tag = '', cell = null){ const [st,k] = compStatu
         <td class="num"><div class="btns"><button class="mini" data-details="${c.id}" title="Competition details">⚙</button><button data-enter="${c.id}">Open</button>${announceBtn(c)}</div></td></tr>`; }
 // Level colours (Feis setup can change them; used in Event Scoring → By time)
 const LEVEL_KEYS = [['tnn','Tír na nÓg','TnN'],['ba','Beginner A','Beg A'],['bb','Beginner B','Beg B'],['int','Intermediate','Int'],['pc','Preliminary Championship','Prelim'],['ocp','Open Champion Premiere Prize','Open Prem'],['oc','Open Championship','Open'],['ceili','Céilí','Céilí']];
-const LEVEL_COLOR_DEF = { tnn:'#1a9e8f', ba:'#e8b400', bb:'#2f6fd6', int:'#d23a3a', pc:'#2e9d4f', ocp:'#c2459a', oc:'#6b3fb8', ceili:'#7a8794', other:'#9aa5b1' };
+const LEVEL_COLOR_DEF = { tnn:'#1a9e8f', ba:'#e8b400', bb:'#2f6fd6', int:'#d23a3a', pc:'#2e9d4f', ocp:'#2e9d4f', oc:'#2e9d4f', ceili:'#7a8794', other:'#9aa5b1' };
 const levelKeyOf = c => { const k = ((c && c.gen && c.gen.key) || '').split('-')[0]; return /^c\d/.test(k) ? 'ceili' : LEVEL_COLOR_DEF[k] ? k : 'other'; };
 const lightBg = h => { const m = String(h).match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); if (!m) return false; const [r, g, b] = m.slice(1).map(x => parseInt(x, 16)); return 0.299 * r + 0.587 * g + 0.114 * b > 165; };
 const levelColor = k => (state.settings.levelColors || {})[k] || LEVEL_COLOR_DEF[k] || LEVEL_COLOR_DEF.other;
