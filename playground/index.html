@@ -2693,6 +2693,7 @@ function levelColorsDlg(){
   ov.querySelector('.dlgNo').onclick = () => { delete state.settings.levelColors; save(); ov.remove(); render(); };
   ov.querySelector('.dlgOk').onclick = () => { ov.remove(); render(); }; ov.onclick = e => { if (e.target === ov) { ov.remove(); render(); } };
 }
+const OV_TIME = true;   // Event Scoring 'By time' view (the live build turns it off until it's approved)
 let ovView = (() => { try { return localStorage.getItem(KEY + '.ovView') || 'time'; } catch (_) { return 'time'; } })(), ovTDay = null, ovTStage = 'all';
 function ovTimeRows(){
   const day = ovTDay || pickDay(), { items } = schedItems(day), tm = schedTimes(day, items), ms = multiStage();
@@ -2718,7 +2719,7 @@ function ovTimeRows(){
   return rows || `<tr><td colspan="${cols}" class="muted">Nothing on the running order for ${esc(dayLabel(day))} yet — build it in Feis setup → Running order.</td></tr>`;
 }
 function renderOverview(){
-  const OV = ovView === 'time' && state.comps.some(c => c.gen) ? 'time' : 'list';
+  const OV = OV_TIME && ovView === 'time' && state.comps.some(c => c.gen) ? 'time' : 'list';
   const counts = {};
   ovComps().forEach(c => { const k = compStatus(c)[1]; counts[k] = (counts[k]||0)+1; });
   const nudge = role() === 'hub' && !(state.settings.sync && state.settings.sync.on) && !state.syncNudgeOff;
@@ -2728,7 +2729,7 @@ function renderOverview(){
     ${photosOn() && can('photos') ? `<div class="hint ovPhotos"><label class="btnlike primaryLike">📷 Upload sheet photos<input type="file" accept="image/*" multiple id="ovCam" hidden></label>
       <span>Pick one photo or a whole stack, in any order. Printed sheets <b>file themselves</b> from their code; for hand-written sheets you choose the competition and adjudicator. Or tap the 📷 under a sheet number to photograph that one.</span></div>` : ''}
     <div class="ovCounts">${[['work','being entered'],['warn','need read-back'],['ready','ready to announce'],['done','announced'],['grey','waiting / setting up']].filter(([k])=>counts[k]).map(([k,l])=>`<span class="st ${k}">${counts[k]} ${l}</span>`).join('')}</div>
-    <div class="row" style="margin:0 0 8px;align-items:center"><div class="seg" id="ovView"><button data-ov="time" class="${OV === 'time' ? 'on' : ''}">🕒 By time</button><button data-ov="list" class="${OV === 'list' ? 'on' : ''}">☰ List</button></div>
+    <div class="row" style="margin:0 0 8px;align-items:center">${OV_TIME ? `<div class="seg" id="ovView"><button data-ov="time" class="${OV === 'time' ? 'on' : ''}">🕒 By time</button><button data-ov="list" class="${OV === 'list' ? 'on' : ''}">☰ List</button></div>` : ''}
     ${OV === 'time' ? `<div class="seg">${schedDays().map(d => `<button class="${(ovTDay || pickDay()) === d ? 'on' : ''}" data-ovd="${d}">${esc(dayLabel(d))}</button>`).join('')}</div>${multiStage() ? `<label class="muted" style="flex-direction:row;align-items:center;gap:8px">Stage <select id="ovStg"><option value="all">All stages</option>${stages().map(x => `<option value="${x.id}" ${ovTStage === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}<span class="muted">Times are estimates from the running order</span><button class="mini" id="ovColors" title="Change the level colours">🎨 Level colours</button>`
     : `<label class="muted" style="flex-direction:row;align-items:center;gap:8px">Show <select id="ovDay">${filterOptionsHTML(ovDay)}</select></label><span class="muted">${ovComps().length} of ${state.comps.length}</span>`}
 <div class="spacer"></div>${ovComps().some(isPosted) ? `<button id="ovPrintPosted">🖨 Print results — all finished “posted” competitions shown</button>` : ''}</div>
