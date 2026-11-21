@@ -1,5 +1,5 @@
 // Caches the app so it opens with no internet after the first visit.
-const CACHE = 'feis-play-f2c70b8a43';
+const CACHE = 'feis-play-c2ec823ce9';
 const FILES = ['./', './index.html'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
