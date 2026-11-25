@@ -117,6 +117,8 @@
   .xRnds { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; } .xRnd { border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
   .xRh { display:flex; flex-direction:column; margin-bottom:4px; } .xRh small { color:var(--muted); } .xRt { width:100%; border-collapse:collapse; margin-bottom:6px; } .xRt td { padding:3px 4px; border-top:1px solid #eef0f3; vertical-align:top; }
   .xRt td.pl { font-weight:700; width:42px; } .xRt td.no { font-weight:700; width:44px; } .xRt small { display:block; color:var(--muted); font-size:11px; }
+  .backBtn { background:var(--pri); color:#fff; border-color:var(--pri); font-weight:700; padding:8px 14px; }
+  .backFloat { position:fixed; right:18px; bottom:18px; z-index:60; background:var(--pri); color:#fff; border:0; border-radius:28px; padding:13px 20px; font-size:16px; font-weight:700; box-shadow:0 6px 20px rgba(0,0,0,.28); }
   /* compact button menus */
   .ddMenu { position:relative; display:inline-block; } .ddMenu > summary { list-style:none; cursor:pointer; } .ddMenu > summary::-webkit-details-marker { display:none; }
   .ddMenu > summary { display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:14px; }
@@ -2243,7 +2245,7 @@ function keepScroll(fn){ const sig = viewSig(), y = scrollY, same = keepScroll.s
   const put = () => { boxes().forEach((b, i) => { if (xs[i]) { if (xs[i][0]) b.scrollLeft = xs[i][0]; if (xs[i][1]) b.scrollTop = xs[i][1]; } }); if (y > 0 && Math.abs(scrollY - y) > 2) scrollTo(0, y); };
   put(); requestAnimationFrame(() => { if (viewSig() === sig) put(); }); setTimeout(() => { if (viewSig() === sig) put(); }, 80); }
 function render(){ keepScroll(render0); }
-function render0(){ if (typeof onAirTick === "function") setTimeout(onAirTick, 0);
+function render0(){ if (typeof onAirTick === "function") setTimeout(onAirTick, 0); setTimeout(backFloat, 0);
   _autoSes = null;
   updateBackupBtn();
   if (pinSet() && !unlocked && ['settings','setup','registration'].includes(state.tab)) state.tab = 'overview';
@@ -3580,7 +3582,7 @@ function renderCompSheets(c){
   const D = live(c).length;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv">◂ ${backLabel()}</button><button id="toDet" title="Competition details">⚙ Details</button><h2 style="margin:0">${esc(c.name)}${isOnAir(c)?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2><div class="spacer"></div> <button class="mini" id="luOrder" title="Put the dancers in the order printed on the paper line-up">📋 Line-up order…</button>${can('marks') ? '<button class="mini danger" id="clrAll" title="Delete every adjudicator’s marks for this competition and start again">🧹 Clear all marks…</button>' : ''}</div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv" class="backBtn">◂ Back to ${backLabel()}</button><button id="toDet" title="Competition details">⚙ Details</button><h2 style="margin:0">${esc(c.name)}${isOnAir(c)?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''} <span class="muted">— tap an adjudicator to enter or check their sheet</span></h2><div class="spacer"></div> <button class="mini" id="luOrder" title="Put the dancers in the order printed on the paper line-up">📋 Line-up order…</button>${can('marks') ? '<button class="mini danger" id="clrAll" title="Delete every adjudicator’s marks for this competition and start again">🧹 Clear all marks…</button>' : ''}</div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers in the competition’s ⚙ Details (or build competitions from Registration) first.</div>'}
     ${ciPanel(c)}${flagPanel(c)}
     ${c.judges.length === 1 ? (needAdj(c) ? `<div class="adjAsk">⚠ <b>Which adjudicator judged this?</b> <span class="muted">Check the name on the sheet, then tap it:</span><div class="row" style="margin-top:6px">${adjNames(c).map(nm => `<button class="primary" data-adjset="${esc(nm)}">${esc(nm)}</button>`).join('')}<button data-adjset="__other">Other name…</button></div></div>`
@@ -3637,7 +3639,13 @@ async function setAdj(c, nm){
   if (nm === '__other') { nm = await dialog({ title:'Adjudicator', input:true, value:'', text:'Name of the adjudicator who judged this competition:', ok:'Use this name' }); if (!nm) return renderScores(); }
   c.judges = [String(nm).trim()]; c.adjOk = true; save(); pushDisplay(); renderScores(); toast(`${shortName(c)} — adjudicator: ${c.judges[0]}`); }
 const adjAsked = new Set();
-function renderScores(){ renderScores0(); applyLock();
+function backFloat(){ let b = document.getElementById('backFloat');
+  const want = state.tab === 'scores' && state.scoreBack === 'show';
+  document.body.style.paddingBottom = want ? '76px' : '';
+  if (!want) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.id = 'backFloat'; b.className = 'backFloat'; document.body.appendChild(b); }
+  b.textContent = '◂ Back to Stage Awards'; b.onclick = () => { state.tab = 'show'; save(); render(); scrollTo(0, 0); }; }
+function renderScores(){ renderScores0(); applyLock(); backFloat();
   const c = editComp();   // opening the marks for a one-adjudicator competition whose adjudicator isn't confirmed yet → ask first
   if (needAdj(c) && state.judgeTab === 0 && can('marks') && !compLocked(c) && !adjAsked.has(c.id)) { adjAsked.add(c.id);
     const ov = document.createElement('div'); ov.className = 'dlgOv';
@@ -3661,7 +3669,7 @@ function renderScores0(){
   const rowsD = eo === 'no' ? c.dancers.slice().sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0) || String(a.no).localeCompare(String(b.no))) : c.dancers;
   main.innerHTML = `
   <section class="card">
-    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" title="Back">◂◂ ${backLabel()}</button><h2 style="margin:0">${esc(c.name)}${isOnAir(c)?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''}</h2><div class="spacer"></div><span id="annSlot">${announceBtn(c)}</span></div>
+    <div class="stepHead" style="margin-bottom:10px"><button id="toOv2" class="backBtn" title="Back">◂◂ Back to ${backLabel()}</button><h2 style="margin:0">${esc(c.name)}${isOnAir(c)?' <button class="pill onair" data-onair title="Go to Stage Awards">ON SCREEN ▸</button>':''}</h2><div class="spacer"></div><span id="annSlot">${announceBtn(c)}</span></div>
     <div class="judgeTabs" id="jtabs"></div>
     ${c.dancers.length ? '' : '<div class="hint">Add dancers in the competition’s ⚙ Details (or build competitions from Registration) first.</div>'}
     <div class="entryGrid ${usePhotos?'':'noPhotos'}">
