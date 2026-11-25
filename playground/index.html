@@ -106,6 +106,12 @@
   .tmBox { margin-top:14px; border:1px solid var(--line); border-radius:10px; padding:10px 14px; } .tmBox > summary { cursor:pointer; } .tmBox .fh { margin-top:10px !important; }
   .ovPills { display:flex; flex-wrap:wrap; gap:6px; align-items:center; } .ovSeg { flex-wrap:wrap; } .ddMenu > summary.on { background:var(--pri); color:#fff; border-color:var(--pri); }
   .ddH { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 6px 2px; } .ddMenu > div > button.on { background:#eef1f5; color:var(--ink); border-color:var(--pri); font-weight:700; } .ovLvlOn { border-radius:18px; background:var(--pri); color:#fff; border-color:var(--pri); padding:6px 12px; }
+  .xckBtn { background:#fff6db; border:2px solid #e0a800; color:#5a4200; font-weight:700; padding:9px 16px; }
+  .xAdjs { display:flex; flex-direction:column; gap:6px; } .xAdj { display:flex; align-items:center; gap:10px; } .xAn { flex:1; display:flex; flex-direction:column; } .xAn small { font-size:13px; }
+  .xPh { width:54px; height:42px; padding:0; flex:none; background:#f1f3f6 center/cover no-repeat; border-radius:6px; font-size:18px; } .xPh.has { border:1px solid #999; cursor:zoom-in; } .xPh:disabled { opacity:.5; }
+  .xRnds { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; } .xRnd { border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .xRh { display:flex; flex-direction:column; margin-bottom:4px; } .xRh small { color:var(--muted); } .xRt { width:100%; border-collapse:collapse; margin-bottom:6px; } .xRt td { padding:3px 4px; border-top:1px solid #eef0f3; vertical-align:top; }
+  .xRt td.pl { font-weight:700; width:42px; } .xRt td.no { font-weight:700; width:44px; } .xRt small { display:block; color:var(--muted); font-size:11px; }
   /* compact button menus */
   .ddMenu { position:relative; display:inline-block; } .ddMenu > summary { list-style:none; cursor:pointer; } .ddMenu > summary::-webkit-details-marker { display:none; }
   .ddMenu > summary { display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:14px; }
@@ -1407,7 +1413,7 @@ function updateLockUI(){
 
 /* ---------------- Control UI ---------------- */
 const main = document.getElementById('main');
-const backLabel = () => state.scoreBack === 'schedule' ? 'Schedule' : 'Event Scoring';
+const backLabel = () => state.scoreBack === 'schedule' ? 'Schedule' : state.scoreBack === 'show' ? 'Stage Awards' : 'Event Scoring';
 const navOf = t => t === 'scores' ? (state.scoreBack || 'overview') : t === 'registration' ? 'settings' : t === 'setup' ? navOf(state.prevTab || 'overview') : t;
 function renderHeader(){
   updateLockUI();
@@ -3828,30 +3834,41 @@ function crossCheckDlg(c){
   const D = live(c), dnd = c.dancers.filter(d => d.dnd), J = c.judges.length, e = c.gen && regEvent(c.gen.key), N = placesN(c);
   const ver = c.judges.map((n, j) => `${esc(n)} ${isVerified(c, j) ? '<span class="okTxt">✓ verified</span>' : D.length && judgeComplete(c, j) === D.length ? '<span class="warn">typed, not read back</span>' : '<span class="warn">not all typed</span>'}`).join(' · ');
   const res = resultList(c), ties = overallTies(c), fl = flagList(c);
+  const canOpen = tabOk('scores');
   const rnd = hasRoundAwards(c) ? roundAwardRounds(c).map(ri => { const R = roundResults(c, ri), rj = roundJudge(c, ri);
-    return `<tr><td>${esc(c.roundNames[ri] || 'Round ' + (ri + 1))}</td><td>${rj != null ? esc(c.judges[rj]) : 'All adjudicators'}</td><td>${R.ok ? R.list.filter(r => !r.d.dnd).map(r => `${ord(r.place)}${r.tie ? '=' : ''} ${esc(r.d.no)}`).join(' · ') : '<span class="muted">not ready</span>'}</td></tr>`; }).join('') : '';
+    return `<div class="xRnd"><div class="xRh"><b>${esc((c.roundNames[ri] || 'Round ' + (ri + 1)).replace(/ \(.*\)$/, ''))}</b><small>${rj != null ? `Adj. ${rj + 1}: ${esc(c.judges[rj])}` : 'All adjudicators'}</small></div>
+      ${R.ok ? `<table class="xRt"><tbody>${R.list.filter(r => !r.d.dnd).map(r => `<tr><td class="pl">${ord(r.place)}${r.tie ? '=' : ''}</td><td class="no">${esc(r.d.no)}</td><td>${esc(r.d.name || '')}<small>${esc(r.d.school || '')}</small></td></tr>`).join('')}</tbody></table>` : '<div class="muted" style="padding:6px 0">Not ready — sheet not complete yet</div>'}
+      ${canOpen && rj != null ? `<button class="mini" data-xopen="${rj}">Open Adj. ${rj + 1}’s marks ▸</button>` : ''}</div>`; }).join('') : '';
+  const adjRows = c.judges.map((n, j) => `<div class="xAdj"><button class="xPh" data-xph="${j}" title="Sheet photo" disabled>📷</button><div class="xAn"><b>Adj. ${j + 1}: ${esc(n)}</b><small>${isVerified(c, j) ? '<span class="okTxt">✓ verified</span>' : D.length && judgeComplete(c, j) === D.length ? '<span class="warn">typed, not read back</span>' : `<span class="warn">${judgeComplete(c, j)} of ${D.length} typed</span>`}</small></div>${canOpen ? `<button class="mini" data-xopen="${j}">Open marks ▸</button>` : ''}</div>`).join('');
   const ov = document.createElement('div'); ov.className = 'dlgOv';
   ov.innerHTML = `<div class="dlg xck" style="width:min(820px,96vw)"><h3>🔎 ${esc(c.name)}</h3>
     <table class="tbl"><tbody>
       <tr><th>Day</th><td>${esc(dayLabel(compDay(c)))}${sessionOf(c) ? ' · ' + esc(sessionOf(c).name) : ''}</td></tr>
       <tr><th>Dancers</th><td>${D.length} dancing${dnd.length ? ` · did not dance: ${dnd.map(d => esc(d.no)).join(', ')}` : ''}</td></tr>
       <tr><th>Scoring</th><td>${isUS(c) ? 'US' : 'Irish'} · results ${isPosted(c) ? 'posted' : 'announced on stage'} · ${N} place${N === 1 ? '' : 's'} announced${c.rounds > 1 ? ` · ${c.rounds} rounds (${(c.roundNames || []).map(esc).join(', ')})` : ''}</td></tr>
-      <tr><th>Adjudicator${J > 1 ? 's' : ''}</th><td>${ver}${needAdj(c) ? ' <span class="pill adjPill">👤 not confirmed</span>' : ''}</td></tr>
+      <tr><th>Adjudicator${J > 1 ? 's' : ''}</th><td><div class="xAdjs">${adjRows}</div>${needAdj(c) ? ' <span class="pill adjPill">👤 not confirmed</span>' : ''}</td></tr>
       ${hasRoundAwards(c) ? `<tr><th>Round awards</th><td>${c.roundStage === 'off' ? 'Off stage — Awards table' : 'On stage'} · ${c.roundStyle === 'us' ? 'US — call dancers up first' : 'Irish — results table'}</td></tr>` : ''}
       ${ties.length ? `<tr><th>Ties</th><td class="warn">${ties.map(x => `${ord(x.place)}: ${x.rs.map(r => esc(r.d.no)).join(' & ')}`).join(' · ')}${tieOpen(c) ? ' — not checked yet' : ' — checked'}</td></tr>` : ''}
       ${fl.length || c.flag || (c.note || '').trim() ? `<tr><th>Flags &amp; notes</th><td>${c.flag ? '🚩 Competition flagged. ' : ''}${(c.note || '').trim() ? esc(c.note) + '<br>' : ''}${fl.map(x => `${x.flag ? '🚩' : '📝'} ${esc(x.d.no)} (Adj. ${x.j + 1})${x.note ? ': ' + esc(x.note) : ''}`).join('<br>')}</td></tr>` : ''}
     </tbody></table>
     <h4 style="margin:12px 0 4px">Results${res.length ? '' : ' — not ready yet'}</h4>
     ${res.length ? `<table class="tbl"><thead><tr><th>Place</th><th>No.</th><th>Dancer</th><th>School</th>${isUS(c) ? '' : '<th class="num">Irish points</th>'}<th>Award</th></tr></thead><tbody>${res.map(r => { const a = awardAt(c, r.place); return `<tr><td><b>${ord(r.place)}${r.tie ? '=' : ''}</b></td><td>${esc(r.d.no)}</td><td>${esc(r.d.name || '')}</td><td>${esc(r.d.school || '')}</td>${isUS(c) ? '' : `<td class="num">${fmt(r.total)}</td>`}<td>${a ? esc(a.type || a.name || '') : ''}</td></tr>`; }).join('')}</tbody></table>` : ''}
-    ${rnd ? `<h4 style="margin:12px 0 4px">Round awards</h4><table class="tbl"><thead><tr><th>Round</th><th>Adjudicator</th><th>Places</th></tr></thead><tbody>${rnd}</tbody></table>` : ''}
-    <div class="dlgBtns"><button class="dlgOk">Close</button></div></div>`;
+    ${rnd ? `<h4 style="margin:12px 0 4px">Round awards</h4><div class="xRnds">${rnd}</div>` : ''}
+    <div class="dlgBtns">${canOpen ? `<button data-xopen="-1" style="margin-right:auto">Open all score sheets ▸</button>` : ''}<button class="dlgOk">Close</button></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.dlgOk').onclick = () => ov.remove(); ov.onclick = ev => { if (ev.target === ov) ov.remove(); };
+  ov.querySelectorAll('[data-xopen]').forEach(b => b.onclick = () => { ov.remove(); state.editId = c.id; state.judgeTab = +b.dataset.xopen; state.scoreBack = state.tab === 'show' ? 'show' : 'overview'; state.tab = 'scores'; save(); render(); scrollTo(0, 0); });
+  // each adjudicator's sheet photo, if one was taken — tap to see it full size
+  if (photosOn()) ov.querySelectorAll('[data-xph]').forEach(async b => { const j = +b.dataset.xph; let u = null; try { u = await getPhoto(c, j); } catch (_) {} if (!u) { b.title = 'No photo of this sheet yet'; return; }
+    b.disabled = false; b.textContent = ''; b.style.backgroundImage = `url("${u}")`; b.classList.add('has');
+    b.onclick = () => { const pv = document.createElement('div'); pv.className = 'dlgOv'; pv.style.zIndex = 120; pv.innerHTML = `<div class="dlg" style="width:min(900px,96vw)"><h3>Adj. ${j + 1}: ${esc(c.judges[j])} — sheet</h3><img src="${u}" style="width:100%;border-radius:8px"><div class="dlgBtns"><button class="dlgOk">Close</button></div></div>`;
+      document.body.appendChild(pv); pv.querySelector('.dlgOk').onclick = () => pv.remove(); pv.onclick = ev => { if (ev.target === pv) pv.remove(); }; }; });
 }
 function renderShow(){
   main.innerHTML = `
   <section class="card">
     <div class="row" style="align-items:flex-end"><button id="livePrev" title="Previous competition">◂</button><label>Competition on screen <select id="liveSel">${ovOrderAll().map(c => `<option value="${c.id}" ${c.id===state.liveId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button id="liveNext" title="Next competition">▸</button>
+      <button id="xCheck" class="xckBtn" title="Everything about this competition on one page, to check before announcing">🔎 Cross-check details</button>
       <div class="muted" style="padding-bottom:6px">You can keep entering scores for other competitions while this one is on screen.</div></div>
     <div class="showgrid">
       <div>
@@ -3863,7 +3880,7 @@ function renderShow(){
         </div>
         <button id="nextBtn" class="big primary">Next ▶<small>Space · → · Page Down · presentation clicker</small></button>
         <button id="backBtn" style="width:100%">◀ Back</button>
-        <button id="xCheck" style="width:100%" title="Everything about this competition on one page, to check before announcing">🔎 Cross-check details</button>
+
         <div id="annDoneBox"></div>
         <button id="presentBtn" class="present">⛶ Present on this device (full screen)</button>
         <div id="tieAlertStage"></div><div id="screenCtl" class="ctl"></div>
