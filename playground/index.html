@@ -90,6 +90,26 @@
   .dlg { max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px); overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .dlg > .dlgBtns { position:sticky; bottom:-18px; background:#fff; margin:12px -20px -18px; padding:10px 20px 14px; border-top:1px solid #e6e9ee; z-index:3; }
   .dlg.luDlg { overflow:hidden; }
+  /* print centre */
+  .dlg.pzDlg { width:min(760px,100%); }
+  .pzHead { display:flex; align-items:center; gap:8px; margin-bottom:6px; } .pzHead .pzX { margin-left:auto; }
+  .pzWhat { display:flex; flex-direction:column; gap:6px; margin:4px 0 6px; }
+  .pzG { display:flex; flex-wrap:wrap; gap:6px; align-items:center; } .pzGl { width:104px; flex:none; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .pzG button { padding:7px 11px; border-radius:18px; } .pzG button.on { background:var(--pri); color:#fff; border-color:var(--pri); }
+  .pzDesc { margin:2px 0 10px; } .pzF { gap:10px; align-items:flex-end; margin-bottom:6px; } .pzF label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted); font-weight:600; }
+  .pzAge { display:inline-flex; gap:6px; align-items:flex-end; }
+  .pzList { margin-top:8px; border:1px solid var(--line); border-radius:8px; padding:6px 10px; } .pzList summary { cursor:pointer; font-weight:600; padding:4px 0; }
+  .pzRows { max-height:38vh; overflow:auto; } .pzRow { display:flex !important; flex-direction:row !important; gap:8px; align-items:flex-start; padding:5px 0; border-top:1px solid #eef0f3; font-size:14px; color:var(--ink) !important; font-weight:400 !important; }
+  .pzRow input { width:18px; height:18px; margin-top:2px; flex:none; } .pzNone { padding:10px 0; } .pzJust { margin-bottom:8px; }
+  .dlg > .dlgBtns .pzCount { margin-right:auto; align-self:center; }
+  @media (max-width:640px){ .pzGl { width:100%; } .pzF select, .pzF input { font-size:16px; } .dlg.pzDlg { padding:14px; } }
+  .tmBox { margin-top:14px; border:1px solid var(--line); border-radius:10px; padding:10px 14px; } .tmBox > summary { cursor:pointer; } .tmBox .fh { margin-top:10px !important; }
+  /* compact button menus */
+  .ddMenu { position:relative; display:inline-block; } .ddMenu > summary { list-style:none; cursor:pointer; } .ddMenu > summary::-webkit-details-marker { display:none; }
+  .ddMenu > summary { display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:14px; }
+  .ddMenu[open] > summary { background:#eef1f5; }
+  .ddMenu > div { position:absolute; z-index:20; top:calc(100% + 4px); left:0; min-width:250px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.18); padding:6px; display:flex; flex-direction:column; gap:4px; }
+  .ddMenu > div > button, .ddMenu > div > .btnlike { text-align:left; width:100%; font-size:14px; font-weight:400; padding:7px 12px; box-sizing:border-box; }
   button.dangerFill { background:var(--bad); color:#fff; border-color:var(--bad); }
   #toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:#1d2733; color:#fff; padding:10px 16px; border-radius:10px; z-index:120; opacity:0; pointer-events:none; transition:all .25s; max-width:90%; text-align:center; }
   #toast.on { opacity:1; transform:translate(-50%,0); }
@@ -492,7 +512,7 @@
   try { const d = JSON.parse(live); if (d.settings) delete d.settings.sync; localStorage.setItem('feisLive.play.v1', JSON.stringify(d)); location.reload(); } catch (e) { alert('Could not copy: ' + e); } };</script>
 
 <header class="bar">
-  <div class="brand"><img class="brandLogo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAACbCAMAAABruOY5AAAAYFBMVEX///////3+//77//7//v/+/v/+/v7//vz8/v3//f78/Pz8+fr28fLy5+nt2t3R0dHiyMzosbmsq6ywmJzLeIOIiIhnZma0SlZJSUnCJzlHHyMhISEaBwgHBwcLAAAAAAAZfsAEAAAfoklEQVR42uVdiZajOBIEjLkkcYNpA+P//8uNSAkMNnbVzNb0vKrm7U67bBAK5Z1KEs/77UcQZ5GuKp2mfhwH3o8/fMDU1eVSqTRKkuAPwTtM0wDEQRD8fLx+pID3r7+mS5me/wTAsSov01+3GxDnaWDX4KeiBQcDcN5eQV/Q+Noaj9/8WMQBD181xHsFV0OMIcWQ6fgHA05SMvR0bYXMl9z76YB9TaTXNjfyb6PCHw7YA4Fv01CmoqpBYghwnP5cpeXpRgirY0fqRsVxmoY/lsJp3gtdwyxTpZDYBD8asKosWYNEKUrxdC3j6PxTAXtUWaBqX0JJpSouL9cJ3B2cf6oMh15agqPhb5ich6nay3Ax3un0Ux3MVJyOa1W1/TD0fddUOPQPBhxajq7Ayn/Ru7xeL21l0jA7/1S7ZOhltRXxInr4S1zMttQ/lLwqz+lWXpvqymOaJkvnoclVGPysCMKPIl9V4F8R4bJt26Zp28vVsvYVkXEQ/SgH04djVQ2QWAIuldY6zrTOy6a/SpyIfE/4szzqWDfI6lgKl16KA/m7wDeVVWBQZOnPAqyoqK4NrNI05B4dqzA4nc5528IWC2JwdRBFPyOpAwJXdKGH0gFmVoexcZyDzUFkyXDlYQRJD749mUPfT9P8IkGwru6A/ThJ4nIgUkEM/ysNo/jbJ27DNEFatrHpjdABRngEHXU6SSgxlDY0RtrWj7PkdPr2gCWrc5uulfLKVWkBcBI4wCkWxCYD4u9PYS88xdaDbk0Q5Bf4k6WjcCj5PGY/UhspVipOou/uZYZhEOYXiQnDIDDtr0ub+1rCJVhj4uwNCE4xnjrtJ98+kIDxSSursbwEOXiER03TdD0OxA0WJsyUQB9KPzgn35zEJ6imZrrBoVSpMmWDCNi60eDttpLoWKnUV9bLjpNvn+4BhY3EhLmC+RmuNmKQ4+pcaxy5AomxAgoS8P3dDoowVBadSAE7OQIPVQvSX/D99dKU2ICZOoiz//0BMzuJmPCyBP3D5dLyEBfLRscImHDC9SIm+vsDFpMjWyuS4qhKY4w2esn3LDFiCwXuhd83hLBbvytgWmAo5hzBQlcpiHac0x255KaBZP8FtYa1UAwkvzVg/n+h8KUtVUjlRC8yOblNJh3qqh0skelOp99WbUk5A/9fMjKE9c1RxrJsKZUwyTaACpG8NS4qJmKEUef0W9ZCyNYZ9lZyq7SQ5DgFIV0MSXHkdpOp1aAovgdfO8RxGKYshQi+JY1j30Abi0+hGBeEYWhJjP3Si1Bawa0GOHx9EW3d0tH8pnhDbP2aBuZWXGkT00sG+UR2/+KO+MTtYdAzPKeRystWEFc6xEp9yyARAREzO3azfyjjxBeypblkOAYkLaXGg4ixlchkjwSJVRoR8HcksfOQWxc8hD55Nzi5qqWhbcs0PJ1CRscgO5I9rgwiTYLvyNOoZLBlDZXsCSNLF0M9gXaJxPukJdT2+UzAKRQbuNlmghpEicE39LeUBP43IFWLQibcU5Aaiis9jTKVI1wSAFoKXmCloaq9b7hVKJaWcWHpclZg6lMAcbXMK4hjlrQom+JBhl64H1UB3zJ5ubhS3DR0wgm65w2iI1FQQuNYKW7CTMLK2Zrrib6hzopLJ7pwryicNELKLOY2b92/KGopXWKa+xG28CMPv5/SCq3kNkh0qDiToLdiCmCyvKxMsyAuqaqkuPacxpYtqvRbmSUxKql1pXJRwqBx1VaN3S7kbiFVOBdBNh4kcIRull032Kwb5eDbedGe7Ca1ZY7QN0fujsksRoE0wORjqCpkuFobKZHSOU/VuVXU5beqc6GhceUcV5RyXHpUdEgyizXDoKlR1m5pBscuTKouUvaBY7CS8K/NrqibrztqYwEH0LcXm62b3E4/wbqMR1NXZcl0bT9YuD0TQOuBU6c7T2vMr/6qo6kLr+u7rzsaAQz3MUP2/XpPUNpyjqvksi7X9bA5PdC8tGUu91OR7FkBf+H8ANbr6i9lmCQSIY5CXTZMQS/HwCKlXOftdh2E6H2d0zgPu1Pzf0lr1Q0AZ183XpSmywZLEGtDvmU5R9NU1Eixl8AQt/115d7r0CEnDRPGc51Y8FTl3a1S9IXb5FndfS3graYOfWuRlgP7Z9gVRjxMVXW5DMzWNqUJuURpGG5P9Lx/yZXOmn8NsFAGR3CgwxUNVUmawycJPFkGyxqB22K9Y//aKOI3AI6ev6XVsqWXyBFEcSAl4g6dHOn3BHx8nM9nBsH2sLUPpDBxBevxr939vwN84hEseP31mZd/GfF/ABgsDf6NADdxjyz9cMA7d3tl6d912/8O8PZZxD8LsPcfAabyj5IPXJroQ7cnkv99Tpi99ENxd0P+n1ojcTZwCziKikJ9PLYqzAcnae3m+BmHkPd8r990UX+RU508UNj0g/lEKDk0H/B/3Wkbc5oPGMGLiq4fiveUwRbbWHvHdP485aOib3T0CHiY6z0rHbhNXjFiiuD8J/Itf2uuWxQlnZ0nvw4T53Jl0brQDP7rYRzmTr1iQS/DPzjn1ps7u8g//D3yOFz0ko2SDJOwk06iYrgt1LwDVv3tYbl1XhQSNBeFtiNE4IN5yF8zvCm6sdeYTY5bINY+iPEibTgsCrXGua/HsX7N1DhzGHFa9zxKpt8R54EPOJlaPVIYxMPXhTvqumNaZhwnJB/GoW8KusAk8TDjLKSe9gdBsNgM+bcOK+PVuO42ypM63T1fgXo0N+x84++F6saxq4vH0WSpMRzIOxbdPHZFvt6l5hgsa8PAiKOP1SSeesPZGqEJflLdPBTghvBBaWX1MI/jeB3tMd/maRonmdntNg9IZaQcGDQcgeTxwJfTPM+4rBPGnh0oXDrP4zKm+wpYsZJkZ/L1eH013AQaYN98uN9QBlmGISWoKkTE9nzW29N7rGZejCNZV2a/AZx4WdENnKWdKlaeB75y8+4La0YUIN/WYxrXRbmNfV30Uy3cMnX95OY0cEwZeSY0+dBTrAoKtKn7dRlu87iuEy7pinqE7GXUXLJIct+JGalhmdYIZvW2gJVD4QbEBIZbr144HpnGPIAUg81keiydMjUnTNJhgs6W1fM8kN/cqpD5rlh5TLEWpZp0JPAsomA45q3jfwET3CprKKKpqBdExMaeywJhkTUmL+MvpH7qsU+yDJAxpbEBd2MmncFzqRhGFlQoYzYmENSYJ1AWTH+H3WeHgOWaDlKTDZSvVTjynnPpBTEGxnf1ODfK9LdVxyZ5AaG/AuNE9jEDl6irc1G3kCHwOZfSKUWsoUiwl4ijo6EujSak4q4uuSwgz9x7WYZljnr+2gDCqjN144iM2gKobAGQcVkHEW0PjO1469ZHr13Leh4LbQE7awJj2OPvhohzuwQFyBOpfpmhW1+u+iiqnpPvCu2UaIQ/u0xMw5IRKDiYdhdqLjKv2ZkoJROeO6eRwDMCeGPHMuFEIbq2XM1v5j5fphTlHf/u55csTcDjVKsdYI+qGStb3CkKhd4rLEuvN5kNmaUIXUK1mHih9bcSnm4BZ+upUPbdol0zB3isH/yiKO/HRpI+UVRP+BmAp8XxcSs5i2TVXiheAuZprXaSCPeomuIybSzpE2Com9pROFoOL5Glxbw5JzuwAO52e2fEpgesZg4fJuJ6OUkxXBoCVqttNIPcQLwIAJ5IPXvLbbLXq6+1WxZKEQGPdXQ3sBCG20AVStsf0TZwhlGUrCTgmoyzm/YBYHjU1xVwckeck8Q5ZNGOzMlrPWAKj0Zed1hNuGP56lGJE0fA4x0w5++4A3IMwHDywBUb5eP+LcZuJYQDvHGOUvIODbUlD/+62UFWwKlHfTF32UvApI4RePcLoasx6NzkwzIyAZtxrp8AJzVWs+jrLNkABiF6KqUhW/m1GetkfYi6BuAIgPUTYDOI32alqHOAI2/DKPgCP2ExIMGi01S4BaySqF7QHLM0AHeyUlvACVUKJt1BiTiZHkCyJ8D8CaSjE5vtAQ80LBuWLrr8TidYuY7ukH5yE3U/FpZXCJiSNZo770Si72pozxu9TzK4zPtef+ykYbNMB4BvT4BFyVBtUVk5T3nMjwDz+vEpACLgvJ63LO2pnWUAYJyjw0fAYBjnSIuKtIDvFE6ihkJrRU2MIZRa9BjVU3evMd5nAYtlIq+LZTK9cNIR4KTu8yPApr7tAO8iygXwUwiGOznDQMCmscZs87sAxtfUzQL4dq2fQi/VDKsx+yxgssvc6N4KsT4AbIM/hn3ZMYXfAQaFCPh5+RLtAGq6os3Gem8ALxTmHHEXwtmqENbRmOQN4N4B3mhpeEs3CkpPA0L9D8BiKLaAU628wxyRnI4Bhuw94D1rKG1dZPn/FnCyajZOayySuwzPjO7GDh5e9Nkk3grY7AB7AthazBXw3g5Dg0A5vwX8hsL5Uzhe92b1UwTwSMBUiXfOF9mizex4EsYZEZ/CGely9XcB9/vcVSSA1QZwvQFs1UQxdMe3+RRgiZ6ijavarb7PBjC8xDDduknQnoi9rZMmjnQ/SjTrPNunWPk1YP04Z8iwsYZ4C3jxt0nguxf091k6H3Y+BcOAwXwEmJa3FwNirI8Kb6GXkAHM3TdC5n2sfAy4PgY81vSW8gUwnjbrNtkYBA6Y8eEjOJ8FXN8TOEUzzP2HgHHR3PV0sG06Q9RWX1vIaGFlyfwh4KF5Biy+JZ04YXUBjD+Q7MEjk0zHILcDAXqR7fokS8PjkdEYaTKWhYA8A+4yAg6Zw7O+M4W2N2tSVaLqwmYMSOZaEsHRJwDvZZjum5irLnMICPg22rTLxFi/G1/leTeAD7OMDjDmZ4fjv0iYNEl0AFics4yZA91NNyHlRtsx7kR8VIDhLJmdNEd/E3AmcYoNRraAb/fkjlEvEtuJ9Xg/AXg9MElFpzx91tJDoRNnWxkmWXibsUwnWSrMp6htzoNkNn+XwsxuDN3KPAvg0RWSMbfWN8P/CXi2o/Ucbeg6G9M9AgaWRnKr3ULBeut7JZLTmgRyzhTCaOlRvAXcPQGuJQt1W/SK1dITTlqStCLEr1h6A/i9DC9JWsnvzIeAmbMEy7vMIS1usvV2xEmSzItlZm3hz8OS/n5J4d3kxZPmGL11dxeztNVsm+z+PwXcbJ0YAt7L8FVYmhnDNbHZFUmYPuyPyOUunwVm5gNRPNWVMr40S1uNm5GZZ6sdMu8ZsHVckQ3Lvwyw+PTZHjBdS5IdFHSQqa2Sxw0hS+8sFxFmrjcrmOB0TsJLx2Mq1kyLql16cHBZmdW13Nmu4iAw3ABu3gOmlmi2MU4zS3blAbCbVm5ztJI6e71TI2Ser11hSDHrqr8EjByySmRTKnd5d3yTRBs7UzwAVt30wrUUwPWHwcMOsCf7BUeAXaZzFJ4b326mCpkpwKZb8p0vAdM2NOIEOPZBDLKyzyFgz21pvAH8PjycdsEXUiCdy3IugPOVwiLkaxr+3capJvtPXdE7Er9maeb+x2XnA7aM2+XRW8BZN9SvAF8/jIe720NOsBju6eRoyXisgEWRigO5JKVfHUaS041NuR4DFj+SpkHQcnvowSkVwPkDYO7WH6tpav7HFM9TxgNquXksD4ieAENpLXJVLBsP3WLe1fH4StLzzKq/ynhoyWdHhnuT3OsU32y7RSeA74n4uwkMD5c6Z8xRj38X8D7/6wA3y3a5eNKWq10+W3cHG8lQQpLUkh2XV4DVsPHHj7adV8APBR/pMWcVnwH8kEDZ1zUIYGYtBbBNsa8kdslyJveb5zIVcUXoFDvA9WvA25zWQTSg+luv9+PbU82jrSCFzT8EDFdRL4C9LWC7SSdbxW4Tw+ZsD9ecsY8NPP5vwE91IGSa7Alw/yHg4gXgwvrBT4DtfsAku81IwkZW+Y31oc7WNoN7DBg7of1TeHiQd0V+oX9WkExaN94B4OKfAY4667CaFbDjo0gyHPNAKC53W4i3v6RPnwCL0TwAPEkqv39n0CWnGgng7IkBmrE+ALzbTDsCbIZDwLLZct9bkp2P9Y5Mk9AtctsTYqnobkaHgJkyegbM3cOsnz8BGPN0fP8wwyf3o/gM4IO9ObLtsuu2AlabrGXGL8SJEoxJZ93NZxkU31EY/xBwyOyNued/n+ybAzw9VjDBYoTN9BRDcF9I2f3hw3iZgDNYmeYolKZHGN23S/stYFuQdOfHWvxNKdnZECKEXMxroq9+2hC3qfwxd4CTSDedeXKdAFiK1A6M/BPgmrVM+bDfJrkn8Am4plntni14P4uDyQoAC3i388ChkXlaE57UEwNTbQ+6pRhvyynPgFmkAcBTvSqHfNjvqdjYVzv3fm9CuofIcgHcWIf6iMKpbJdyE6F/4ACpp5k72UYQz7MRzss2UCQTj69t2CJ+cT+K379zUqnMkmfAETdusRGfiC+mlw0as3epVsD5Xa9GKARj2oMO+CNgqVKroZSkFmMv9BK9RrIhDpW7SgiqdFy1D62n8jIbgUdufzjJdsTjrgW+DpOUZ6FozQZIbo9LMQFwjyN3gEPZUpmQ2JUdGr01zVu8wrc1MwC2dG8pNZJUUj/fCemKVljB0nVXO+aDlmPZUs9kcs3NZ1cFyKyGq1waZllssm3PLCJjBS/bphfHqWEJRm7LJ21xHPOpvZ0bK2OE4tEjYCY+CykQsJVuzOka5qu6eWdoXGEa6uRmqUuTCrz5tmTU6nELOIlMbTc/ZhdTqwe1btMXdjQJz+7DYZ5SPLCeYwvmCpPsdrSgdbqJxUoawtc3vatLYyGfrRbrinv2cEdhmwhiVtjmyBgnoeRsHpfaW5mglB72u8NVBbJcrd5X40TGFeSNtm7z9rB7rGqpK9wMtA43SX4Gxl6xUGxy1YdEsPfkWJooCUYEdTSJyAB1UnooJZIoPjTZNi+9AYyUxTSyOtEVl8olo1ugNRExgOULPthspAmY5C1NXjj24Zru+EE3qIqr65VX9xkKkgd8bAfZVqoWdjuD1YaoJmlkhNwYqe99fGQhYjZ2mkDQfimVidyMCqPePHuYFRjV3MsQ3UUoAWZPL3aKinyUD/fmffmwVA5tv9PJYyX0zghmb5JSZGXoZbUTgucLVG7rnOElWhMcvorzHsxSuJwRPXRc8aVjDhp72QLxKED7VVaGQWFmWeZKfaR7DhyMsX4uW18yNfuRUcFGo4Ox0hQNPFM2dUU5zAljByf2ajkb2cBJZPxIqsLfVOtbYtgynCw6Lpt/MEvecfNvAEZ7FfYjLFBQ8OKBhsA+aoZTis+W5mfdWllBwCe34386+exvEuARNhvVR9HHD1CEkPThXk33qcd4XpzGByGliRlafmsweBIeA5YjYgAbffbJapMru2MW2CfzLODkFPjhWR7ZS728yKLPAAaBEUiGfwuw97qFQXCWXkJc9zR6/QyKZZMwCv/Oyz1W9nAdpSxg3hR9mj//JEfG52nCL3lQCw9+JpmCQo7fdrk6o64ljaJ//GDeOQocYDyUmOmcrS++vMflIeDHx8TYry1jfy//7VOQWBKVpdE/evAOGhH9XDz7C9upqwrNtmI8hRqs7QT3E9wP8ulH2w4A4xFX154xkI5uVoGo6teviiOHe7IsFAerY0ny8xGFpR/8+hmvSLt/EXCmfAsTOkxXlYmkx1IYu/upDWCcozS/wB2379FzH3yPj1Zv1iU4fr/gEWArS0HKR3zxIiSiSnz0ACdgP023JwbuGWCuj24xxeeH64LkDIRLhzsfYJIYjcSEZpRS37dvUkMDIvSGO0XYDWS/hLjC/VQoC08g8oaEFg3HcEcLeLOC8g+k3tsBhrIPKB2fAByI4Er3RQKOMC107hMKC2CcQbqf2MffNvbDvNAi6lebPvEvzkGvg+D+aDRKt0XrAwJ637E/OqmGjkskKdvFEV+CXmv40/KYNFCIuaB4/QXcH3DdQ3dUPoiMCftr70Dfk0Uib+4RHwOG5UX3L5WyRWHIDgTQHroSwPyGXVZBmUhgy5RsDU37q33QRHy4n/xK7Xm2jMgm8HhCnA/6u0YHoA2WFG9/RIe801me/MdTaVxg5ckbMDBvNIhAAxBBLJ0BtoDZM0ScBeEkaZ1pxSL270vyBvCJ7yGU3kg5p5TFGu0Y0CKKgKGX+Dh7BJ2dm9QOjCdMDF4z65OndxTm+8LwE/qSphkM7hnXaPYc4jvhMjR11CFbMOUUXh2wHRPucko4Hu4XCoU1e53yvQCgH/5oF8SIvpVvlR1qO2Ed0E+SI+K9Agk/5DpGx8WYd3zQ84dKy+PLcn/9+tWyoRf7ubFJrqw4VKfBW2RAbnSYKeWe/A4/xxmn2LrhRcR8qjF0RffY8Q79ldw1AphNHdFZOWe/4ZYv5o35c55GpDTvZwiYUqvYFxEsDzZOK0vjUK62gDGTUlG18TrKQCxNQtA+Ep258Kk1HwL2pYnoL0Fs5KN8Iv2guID6fLZfUqDC2H3Uccoprnh95oZauVSzI9qvyq6hAUuDcfDTpfSoii+t/ToXnefH9iI0ZGrlEjTNY7sAch1etyb3ykM5V5N10bMLdKHYhPxkgmi5HrGHvaPemdkjCrNpP3qbkX8Mmn9feJtWE7B8Mnwtx0Vuja6U7OpvwYuaWd4/CwnPFH6yt5RVkWvQOEz8zwUwv8Ko6KNtCCLzl9vw/nIFQJwjtG5F70C8vcjOheLsGibmcoovjTE5umllwpcyhF2xQ0MhJdFbwDw155wIE2sNIeNIhCVkAGux15vwPCaR81vcS6+AwbVezGWpKit2uWAtZUo+dAAaH14AmJdg/Ar/ScXwpiG/1+RYLjiai+En9jQJ5T02+Ik8wd6IxE3tRt0NaitUJIrl5nxMztd1m9YOXUL7RtFblqastLkuqxwtr7lCbKRiLpx5eRHuxnoo4W98LMO4bB0PVIu1DT0IpSM7rsjlYsq0iUkNn6tRngPSU/s5Ta78N1MEj0hfpXIJuZIiAetM4Wo1VcmvVk7mgKE4KPyohKdFENgHJkyFFFxitD8yH7iWdDLAaRXWphKpk96bvLUvfJNDFQQxb0WNk7O9Ie7PdajcUobyOjjQzQ9zewUuPuNBRqhpAg4s4ITzy065mFxD3WXnj6mKo6MVr8aKxyGFh8SKZSjfriPiKLlAwHucIRlEDIHMVGRexPgd4NCzfCKqCBSAAqblxHAV7C/5phLAVC/o6wbAvowugBHsnUN5mMwnB8KiWJrhYkS8SWytUmABp4HYnpPVr4bfOB0JMDJ1LgBgZkl4hjb5RavBW1m1Rf0ZpJWbqvKsWnWAuZbuwLoH0VvA6JFcWYVYCcvJJAkYmoNTr6gYY7oGFjD0buUApxFazVpTzzPBG15pKVzZl2jJ6tN4EJ5HOVOiMlI/F6k2rSgmCDxHDjwul8oyuPfC+ILwYqiaqK9ToYDVhsrNxwLmRNtKjlL7b2UYrgTeomJEFbUtWTrDHEVC4MiQbziJLD1TZkXTxBlmYWXYOrTizwnvwW3E2TmBoUNYyYgPL1kKxXNGr3RRLGzcqmLPAtZ84WXrAMPNLsVIAwDVOF85TtnUfNuc6GuRYfu5pB/A+YQZ43G7xtJTM944WweAI3Hj4SDQfW+FIXxT5hwAWIxQGCRWogapPEolClqJWUqtqw/KcoJQllQDWuZCg5GLKw3AhOdTFEnQFkoqLWmcxI8I+VGYMzjlK2BRV+IYiGoSfW2FvhJBIOyKSpX912S+4EPLVO8Bkz9pLDTZg9iMctBgIEJKmti+StwYa6xKcjYVMjQqvMlUAhDrVfC00l8ECh8Rv6SpAK5MljuJRd90smoZUfvB5IkMU7xPwu6itaxZMFQNvFMu6q20Yas16FZ2xGrhfQOtkCUHObZB4jNgecc3JyEen2BrxVpyxajA6STK5MX2W0dLXC3RnABYInxDxkCJYrmQscU9uIjHF2ZMUfpi3xpdWsDkR8ub8sWFgSJP0KegEk8H2j6VcInTqrQETs4DFMBnXVl1LL9YppEFAVG0vwmuDh0P50mTYQI7kHMtIWP0OZRnnPum/FAvrmdsJyRuLKMoNFpwP+WpdQBzRArwAeCKg2S5eKlEVcllIOkvZ3itIaFEmJPcjw5GmLoV5K2c8RXrL4D5giqZULZo+Xz1UdUuT/QMGDp5DRjA++gfywU3NBiAcs7x8cTX6uB3TWVGDx2/w3aJ2y/vrkBgFkQZ4wGKbSa+KL5OEfnzVX9U15oCkYq2kJmJvwgs2rr+sadIHGSWKr6dOPWsHynjsdN+y/vkEpKA9UM6Rq1MSK6nHU9cFKLjDwB70o8PISECMMQRbFFYyQspdGlSycWcYU8lhIuTmKl3fkyZrcEnvIVFZAZHxPCMw1AhXS6Gb9nxJVWAWFiCudSj7OONpoyZsMq8lq9kQpjHlA/uJy+QDxjhSiNE+Y38gQ9U+FqLa1byvXuxkX63sZ0Ejb5yZkFekrHkAf5Be6lw98Lo+5+bpMsuURfK+8GctyM5m9DlmkIfgBEbpNiiktaOnnt9+tL6jwm18N4GUD4wJeLbD/g7Uc71kXhU8gv++pR+KA3p1pzYV/fTepk4DMUNVo+AmcehmJzZ/v7xTRbB87GmjMOlFySOSKKFNX3k+9a1CdN938Q7Bb4S8OucM6ON9A7YJgiQYJP4QsAlkiD7xGETem4JwvAsIUX4BPjh+FcAv8mx66pS/iM7SKIO3pQvybbTJxE/9II8yZqd/YfjdVO23wA4hNXVyj/aoytpvoVSzJB+lqXXvBwvg6rTMO17vOEhhUUF/A7AvF1wuEkHRRyHVhgfkoveK8DevZ+ra0SfcTMg/OD4nRR+rc++qOeu7wXfq+vhbz0WwNGfBdj7gw6WPHTFH3R0KLvu/6ij/h9VQeLVMIx5egAAAABJRU5ErkJggg==" alt="Peters School of Irish Dance"><span class="brandTx">Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v10.92</span><small>Peters School of Irish Dance</small></span></div>
+  <div class="brand"><img class="brandLogo" src="data:image/png;base64,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" alt="Peters School of Irish Dance"><span class="brandTx">Feis Live Results <span id="ver" class="muted" style="font-size:11px;font-weight:400">v11.0</span><small>Peters School of Irish Dance</small></span></div>
   <button id="rolePill" class="rolePill" title="What this device is for"></button>
   <nav id="tabs">
     <button data-tab="schedule">Schedule</button>
@@ -505,6 +525,7 @@
   <button id="hdrLock" style="display:none" title="Lock Feis setup again">🔒 Lock</button>
   <span id="syncBadge" class="status" style="display:none"></span>
   <button id="hdrScan" title="Scan a score-sheet label, schedule code or dancer number">📷</button>
+  <button id="hdrPrint" style="display:none" title="Print score sheets, labels, line-ups, results, dancer numbers and lists — all from one place">🖨 Print</button>
   <button id="hdrBackup" title="Download a backup of everything on this device">💾 Backup</button>
   <span id="dispStatus" class="status off">Display not open</span>
   <button id="openDisp" class="primary" title="Open the results screen for the projector">📺 Display</button>
@@ -772,6 +793,7 @@ function readLabel(file){
 }
 // stick-on labels for the adjudicators' triplicate score sheets — one per adjudicator per competition, QR files the photo / opens the marks
 function printLabels(comps, title){
+  if (comps.length) pcMark(comps, 'labels');
   const ev = evTitle();
   const qrSvg = text => { const q = qrcode(0, 'Q'); q.addData(text); q.make(); return q.createSvgTag({ cellSize:4, margin:0, scalable:true }); };
   const tOf = c => { const day = compDay(c), { items } = schedItems(day), tm = schedTimes(day, items), it = items.find(x => x.compId === c.id); return it && tm[it.id] ? fmtTime(fromMin(tm[it.id].start)) : ''; };
@@ -839,6 +861,7 @@ function printCheckSheet(c, only){
 // "Stage A" / "Stage B" / "Full stage" (with the stage's name first when there's more than one stage)
 function stageSide(c){ const sid = compStage(c), l = compLane(c), side = isSplit(sid) && l !== 'full' ? `Stage ${l}` : 'Full stage'; return (multiStage() ? stageName(sid) + ' · ' : '') + side; }
 function printSheets(comps, opts = {}){
+  if (!opts.blank && comps.length) pcMark(comps, 'sheets');
   const ev = evTitle(), logo = state.settings.logoL, blank = !!opts.blank;
   const qrSvg = text => { const q = qrcode(0, 'Q'); q.addData(text); q.make(); return q.createSvgTag({ cellSize:4, margin:0, scalable:true }); };
   // blank forms: no competition, adjudicator, numbers or code — filled in by hand. 1, 2 or 3 mark columns.
@@ -1479,11 +1502,17 @@ function puResGroups(){ const g = new Map();
   allAwards().filter(a => !a.stage).forEach(a => { const k = a.c.id + (a.rname ? '~' + a.rname : ''); if (!g.has(k)) g.set(k, { k, c:a.c, rname:a.rname || '', list:[] }); g.get(k).list.push(a); });
   const at = c => Math.max(0, ...c.judges.map((_, j) => ((c.verified || {})[j] || {}).at || 0));
   return [...g.values()].map(x => Object.assign(x, { at: at(x.c) })).sort((a, b) => b.at - a.at); }
-function drawPuRes(){ const box = document.getElementById('puRes'); if (!box) return; const G = puResGroups(), seen = awSeen();
-  box.innerHTML = G.length ? `<table class="tbl"><tbody>${G.map(x => { const got = x.list.filter(a => a.got).length, isNew = seen && !seen.has(x.k);
+// a posted result whose awards have all been collected — hidden unless "Hide completed pickups" is unticked
+const puDone = x => !x.stage && x.list.length && x.list.every(a => a.got);
+const puHide = () => puView.hideDone !== false;
+const puHideHTML = G => { const n = G.filter(puDone).length; return `<label class="inl puHideL"><input type="checkbox" class="puHideDone" ${puHide() ? 'checked' : ''}> Hide completed pickups${n ? ` <span class="muted">(${n} ${puHide() ? 'hidden' : 'done'})</span>` : ''}</label>`; };
+function bindPuHide(box, redraw){ box.querySelectorAll('.puHideDone').forEach(cb => cb.onchange = () => { puView.hideDone = cb.checked; redraw(); }); }
+function drawPuRes(){ const box = document.getElementById('puRes'); if (!box) return; const G0 = puResGroups(), seen = awSeen(), G = puHide() ? G0.filter(x => !puDone(x)) : G0;
+  box.innerHTML = (G0.some(puDone) ? `<div class="row" style="margin:0 0 6px">${puHideHTML(G0)}</div>` : '') + (G.length ? `<table class="tbl"><tbody>${G.map(x => { const got = x.list.filter(a => a.got).length, isNew = seen && !seen.has(x.k);
     return `<tr><td><b>${esc(shortName(x.c))}</b>${x.rname ? ` — ${esc(x.rname)}` : ''}${isNew ? ' <span class="pill awNewP">NEW</span>' : ''}<br><small class="muted">${x.at ? 'Out ' + fmtClock(x.at) : ''}</small></td>
       <td>${x.stage ? `<span class="muted">${compStatus(x.c)[1] === 'done' ? 'Announced on stage' : 'Given on stage'}</span>` : `${got} of ${x.list.length} picked up`}</td><td class="num">${x.stage ? '' : `<button class="mini" data-prv="${esc(x.k)}">👁 Award sheet</button>`}${x.rname ? '' : ` <button class="mini" data-prp="${x.c.id}">🖨 Print</button>`}${x.stage || x.rname ? '' : ` <button class="mini ${(Sync.remotePhotos || {})[photoKey(x.c, 'aw')] ? 'okB' : ''}" data-awph="${x.c.id}" title="Photo of the award sheet">📷${(Sync.remotePhotos || {})[photoKey(x.c, 'aw')] ? ' ✓' : ''}</button>`}</td></tr>`; }).join('')}</tbody></table>`
-    : '<div class="muted">Nothing yet — competitions show here as soon as their results are out.</div>';
+    : G0.length ? '<div class="muted">Every award so far has been picked up. 🎉</div>' : '<div class="muted">Nothing yet — competitions show here as soon as their results are out.</div>');
+  bindPuHide(box, drawPuRes);
   box.querySelectorAll('[data-prv]').forEach(b => b.onclick = () => { const x = puResGroups().find(y => y.k === b.dataset.prv); if (x) awardSheetDlg(x); });
   box.querySelectorAll('[data-prp]').forEach(b => b.onclick = () => printResultsFor([getComp(b.dataset.prp)]));
   box.querySelectorAll('[data-awph]').forEach(b => b.onclick = () => awPhotoDlg(getComp(b.dataset.awph), false)); }
@@ -1504,9 +1533,12 @@ function drawPuComp(){
   const box = document.getElementById('puComp'); if (!box) return;
   const G = puResGroups(), x = puView.comp && G.find(g => g.k === puView.comp);
   if (!x) {
+    const shown = G.filter(g => !(puHide() && puDone(g) && !puView.cq));
     box.innerHTML = `<div class="row puBar"><input id="pcQ" placeholder="Find a competition" value="${esc(puView.cq || '')}" autocomplete="off"><label class="btnlike primaryLike">📷 Scan a signed award sheet<input type="file" accept="image/*" capture="environment" id="pcScan" hidden></label></div>
-      <div class="pcList">${G.filter(g => !puView.cq || (g.c.name + ' ' + g.rname).toLowerCase().includes(puView.cq.toLowerCase())).map(g => { const got = g.list.filter(a => a.got).length, all = got === g.list.length;
-        return `<button class="pcRow ${all ? 'done' : ''}" data-pc="${esc(g.k)}"><b>${esc(shortName(g.c))}${g.rname ? ' — ' + esc(g.rname) : ''}</b><span class="pcCnt">${all ? '✓ all picked up' : `${got} of ${g.list.length} picked up`}</span></button>`; }).join('') || '<div class="muted">No posted results out yet.</div>'}</div>`;
+      ${G.some(puDone) ? `<div class="row" style="margin:0 0 6px">${puHideHTML(G)}${puView.cq && puHide() ? ' <span class="muted">— searching shows them too</span>' : ''}</div>` : ''}
+      <div class="pcList">${shown.filter(g => !puView.cq || (g.c.name + ' ' + g.rname).toLowerCase().includes(puView.cq.toLowerCase())).map(g => { const got = g.list.filter(a => a.got).length, all = got === g.list.length;
+        return `<button class="pcRow ${all ? 'done' : ''}" data-pc="${esc(g.k)}"><b>${esc(shortName(g.c))}${g.rname ? ' — ' + esc(g.rname) : ''}</b><span class="pcCnt">${all ? '✓ all picked up' : `${got} of ${g.list.length} picked up`}</span></button>`; }).join('') || `<div class="muted">${G.length ? 'Every award so far has been picked up. 🎉' : 'No posted results out yet.'}</div>`}</div>`;
+    bindPuHide(box, drawPuComp);
     const q = document.getElementById('pcQ'); q.oninput = () => { puView.cq = q.value; const p = q.selectionStart; drawPuComp(); const q2 = document.getElementById('pcQ'); q2.focus(); q2.setSelectionRange(p, p); };
     box.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => { puView.comp = b.dataset.pc; drawPuComp(); scrollTo(0, 0); });
     document.getElementById('pcScan').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; await scanSignedSheet(f); };
@@ -1771,17 +1803,17 @@ function decodeQR(file){
       const hit = jsQR(cx.getImageData(0, 0, w, h).data, w, h); if (hit && hit.data) return res(hit.data); } res(null); };
     img.onerror = () => { URL.revokeObjectURL(url); res(null); }; img.src = url; });
 }
-function printDancerLabels(){
-  const reg = state.reg;
+function printDancerLabels(pred){
+  const reg = state.reg, keep = pred || (() => true);
   if (!reg) { const list = allDancers(); if (!list.length) return toast('No dancers yet — load registrations in Feis setup → Entries.'); }
   const ev = evTitle(), order = new Map(EVENTS().map((e, i) => [e.key, i]));
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize:4, margin:0, scalable:true }); };
-  const people = reg ? reg.dancers.map(d => ({ no:String(d.no), name:d.name, school:schoolOf(reg, d), age: ageOn(d.dob, eventDates().Sat) ?? d.age ?? '',
+  const people = reg ? reg.dancers.filter(keep).map(d => ({ no:String(d.no), name:d.name, school:schoolOf(reg, d), age: ageOn(d.dob, eventDates().Sat) ?? d.age ?? '',
       dances: d.events.slice().sort((a, b) => (order.get(a) ?? 99) - (order.get(b) ?? 99)).map(k => (regEvent(k) || {}).label || k).concat(d.unknown || []) }))
     : allDancers().map(d => ({ ...d, age:'', dances:[] }));
   const ceiliCards = [];
   // one card per céilí team (one dancer wears the team number)
-  if (reg && reg.ceili) state.comps.filter(c => c.gen && c.gen.ceili).forEach(c => c.dancers.forEach(t => { const ms = String(t.name).split(/,\s*/);
+  if (reg && reg.ceili && (!pred || pred.card)) state.comps.filter(c => c.gen && c.gen.ceili).forEach(c => c.dancers.forEach(t => { if (pred && !pred.card(t, c)) return; const ms = String(t.name).split(/,\s*/);
     ceiliCards.push({ no: t.no, name: `Céilí ${c.gen.ceili.hands} Hand`, school: t.school, age:'', ceili:true, dances: [`<b>${c.gen.day === 'Sat' ? 'Saturday' : 'Sunday'}${c.gen.ceili.level === 'All levels' ? '' : ' · ' + c.gen.ceili.level}</b>`, ...ms.map(esc)], raw:true }); }));
   const big = p => `<div class="lab big"><div class="tx"><div class="l1"><b>${esc(p.no)}</b>&nbsp;&nbsp;<b>${esc(p.name)}</b><span class="age">${p.age !== '' ? `Age: ${esc(p.age)}` : ''}</span></div><div class="l2">${esc(p.school || '')}</div>
       <div class="ds ${p.dances.length > 9 ? "two" : p.dances.length > 6 ? "many" : ""}">${p.dances.map(x => `<div>${p.raw ? x : esc(x)}</div>`).join('')}</div></div><div class="qr">${qrSvg(dancerPayload(p.no))}</div></div>`;
@@ -1846,6 +1878,7 @@ function applyRoleUI(){
   const od = document.getElementById('openDisp'); if (od) od.style.display = can('announce') && state.tab === 'show' ? '' : 'none';   // only needed on Stage Awards
   const ds = document.getElementById('dispStatus'); if (ds) ds.style.display = 'none';   // the button itself says Open / Show display
   const bk = document.getElementById('hdrBackup'); if (bk) bk.style.display = can('marks') || r === 'hub' ? '' : 'none';
+  const hp = document.getElementById('hdrPrint'); if (hp) hp.style.display = NEW_UI && r === 'hub' ? '' : 'none';
   const p = document.getElementById('rolePill'); if (p) { p.textContent = r === 'hub' ? R.icon : `${R.icon} ${R.label}`; p.title = `This device: ${R.label}. ${R.desc} Click to change.`; p.classList.toggle('hubRole', r === 'hub'); }
 }
 async function changeRole(){
@@ -2283,6 +2316,9 @@ function downloadBackupSheet(){
   toast('Spreadsheet downloaded — results, all marks and status.');
 }
 document.getElementById('hdrScan').onclick = scanAnything;
+document.getElementById('hdrPrint').onclick = () => printCenter();
+// compact menus close when you pick something or tap elsewhere
+document.addEventListener('click', e => { document.querySelectorAll('details.ddMenu[open]').forEach(d => { if (!d.contains(e.target) || e.target.closest('.ddMenu > div > button')) d.open = false; }); });
 document.getElementById('rolePill').onclick = changeRole;
 document.getElementById('hdrLock').onclick = lockNow;
 setInterval(updateBackupBtn, 60000);
@@ -3285,6 +3321,7 @@ function levelColorsDlg(){
   ov.querySelector('.dlgOk').onclick = () => { ov.remove(); render(); }; ov.onclick = e => { if (e.target === ov) { ov.remove(); render(); } };
 }
 const OV_TIME = false;
+const NEW_UI = true;   // v11 print centre + Feis setup reorganized (playground first; the live build turns it off)
 const PLAY_FEAT = true;   // features still in the playground: schedule 📷/📋 counts, ON SCREEN presence, spreadsheet backup (the live build turns them off)   // Event Scoring 'By time' view (the live build turns it off until it's approved)
 let ovView = (() => { try { return localStorage.getItem(KEY + '.ovView') || 'time'; } catch (_) { return 'time'; } })(), ovTDay = null, ovTStage = 'all';
 let ovShowAnn = false; try { ovShowAnn = localStorage.getItem(KEY + '.ovShowDone') === '1'; } catch (_) {}
@@ -3420,13 +3457,13 @@ function renderSetup0(){
       ${isUS(c) ? `<label>Results given <select id="cAn"><option value="stage" ${isPosted(c)?'':'selected'}>On stage (shown on screen)</option><option value="post" ${isPosted(c)?'selected':''}>Posted (printed for the tables)</option></select></label>` : ''}
       <label>Places to announce <span style="display:flex;gap:6px"><select id="cPm"><option value="all" ${c.places<0?'selected':''}>Everyone</option><option value="half" ${c.places===0?'selected':''}>${isUS(c) ? `Automatic (top half, ${state.settings.usMin ?? 3}–${state.settings.usMax ?? 6})` : 'Top half'}</option><option value="n" ${c.places>0?'selected':''}>Top…</option></select><input id="cP" type="number" min="1" style="width:70px;${c.places>0?'':'display:none'}" value="${c.places>0?c.places:''}"></span></label>
     </div>
-    <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${c.judges.length > 1 ? i+1 : ''} <select data-judge="${i}">${[...new Set([...panel().filter(Boolean), n].filter(Boolean))].map(nm => `<option ${nm === n ? 'selected' : ''}>${esc(nm)}</option>`).join('')}<option value="__other">Other name…</option></select></label>`).join('')}</div>
-    <div class="printBox"><b>Before the event — print for the adjudicators</b>
+    <div class="row">${c.judges.map((n,i) => `<label>Adjudicator ${c.judges.length > 1 ? i+1 : ''} <select data-judge="${i}">${[...new Set([...(NEW_UI ? adjNames(c) : panel().filter(Boolean)), n].filter(Boolean))].map(nm => `<option ${nm === n ? 'selected' : ''}>${esc(nm)}</option>`).join('')}<option value="__other">Other name…</option></select></label>`).join('')}</div>
+    ${NEW_UI ? `<div class="printBox row" style="align-items:center"><button id="pcThis" class="primary">🖨 Print for this competition…</button><span class="muted">Score sheets, labels or the line-up — or switch to all competitions.</span></div><!--` : ''}<div class="printBox"><b>Before the event — print for the adjudicators</b>
       <div class="row" style="margin:8px 0 4px"><button id="shThis">🖨 Score sheets — this competition</button><button id="shAll">🖨 Score sheets — all competitions</button><button id="shBlank" title="Nothing filled in — no competition, adjudicator or numbers">🖨 Blank score sheets</button></div>
       <div class="muted">One page per adjudicator, with the competition, adjudicator and dancer numbers already filled in${NO_PHOTOS ? '' : ', plus a code that files the photo automatically'}.</div>
       ${NO_PHOTOS ? '' : `<div class="row" style="margin:10px 0 4px"><button id="lblThis">🏷 Stick-on labels — this competition</button><button id="lblAll">🏷 Stick-on labels — all competitions</button></div>
       <div class="muted">For triplicate sheets: one sticker per adjudicator’s sheet (Avery 5163 big or 5160 small).</div>`}
-    </div>
+    </div>${NEW_UI ? '-->' : ''}
     <div class="row"><button id="dupComp">Duplicate setup for next competition</button><button id="delComp" class="danger">Delete this competition</button></div>
   </section>
   <section class="card"><h2>Dancers <span class="muted">— ${c.dancers.length} entered, listed in the order they appear on the score grid</span></h2>
@@ -3472,7 +3509,8 @@ function renderSetup0(){
     save(); render(); pushDisplay(); if (added) toast(`Added ${added} dancers.`);
   };
   const realOrThis = () => state.comps.filter(x => !isDemo(x) || isDemo(c));
-  $('shThis').onclick = () => printSheets([c]); $('shAll').onclick = () => printSheets(realOrThis()); $('shBlank').onclick = () => printSheets([], { blank:true });
+  if ($('shThis')) { $('shThis').onclick = () => printSheets([c]); $('shAll').onclick = () => printSheets(realOrThis()); $('shBlank').onclick = () => printSheets([], { blank:true }); }
+  if ($('pcThis')) $('pcThis').onclick = () => printCenter({ what:'sheets', ids:[c.id] });
   if ($('lblThis')) { $('lblThis').onclick = () => printLabels([c]); $('lblAll').onclick = () => printLabels(state.comps.filter(x => !isDemo(x) || isDemo(c))); }
   $('delComp').onclick = async () => {
     if (!(await askConfirm(`Delete “${c.name}”?`, 'This removes the competition and all its scores. It can’t be undone.'))) return;
@@ -3569,7 +3607,7 @@ function applyLock(){
 }
 // one-adjudicator competitions: the adjudicator has to be confirmed from the sheet (auto-filed photos can't tell who judged)
 const needAdj = c => !!c && c.judges.length === 1 && !c.adjOk && !isDemo(c);
-const adjNames = c => [...new Set([...panel().filter(Boolean), ...c.judges].filter(Boolean))];
+const adjNames = c => [...new Set([...judgesFor(c, 3), ...(() => { const k = `${compDay(c)}|${compStage(c)}`, sp = stagePanels(); return [sp[k + '|A'], sp[k + '|B']]; })(), ...panel(), ...Object.values(stagePanels()).flat()].map(x => String(x || '').trim()).filter(x => x && x !== 'Adjudicator').concat(c.judges).filter(Boolean))];
 async function setAdj(c, nm){
   if (nm === '__other') { nm = await dialog({ title:'Adjudicator', input:true, value:'', text:'Name of the adjudicator who judged this competition:', ok:'Use this name' }); if (!nm) return renderScores(); }
   c.judges = [String(nm).trim()]; c.adjOk = true; save(); pushDisplay(); renderScores(); toast(`${shortName(c)} — adjudicator: ${c.judges[0]}`); }
@@ -3967,7 +4005,8 @@ function eventsTableHTML(){
 function renderSettings(){ keepScroll(renderSettings0); }
 function renderSettings0(){
   const s = state.settings; esSub = state.esSub || esSub;
-  const tabs = [['g','Set up'],['event','Feis details'],['schedule','Days, stages & timing'],['events','Competitions offered'],['scoring','Adjudicators & scoring'],
+  if (NEW_UI && esSub === 'scoring') esSub = state.esSub = 'schedule';
+  const tabs = [['g','Set up'],['event','Feis details'],...(NEW_UI ? [['schedule','Days, stages & adjudicators'],['events','Competitions offered']] : [['schedule','Days, stages & timing'],['events','Competitions offered'],['scoring','Adjudicators & scoring']]),
     ['g','Build'],['entries', `Entries${state.reg ? ` <span class="tabBadge ok">${state.reg.dancers.length}</span>` : ''}`],['runorder','Running order'],
     ['g','Devices'],['sync', `Sync${Sync.on() ? ' <span class="tabBadge ok">on</span>' : ''}`],['backup','Backup']];
   const head = `<section class="card regHead"><div class="stepHead"><h2 style="margin:0">Feis setup</h2><span class="muted">— for the organizers, before and between sessions. Other devices get just the pages their job needs — set them up from the Sync tab.</span><div class="spacer"></div>
@@ -3979,6 +4018,28 @@ function renderSettings0(){
     const ts = document.getElementById('fsToSheet'), fs = document.getElementById('fsFromSheet'); if (ts) ts.onclick = saveSettingsToSheet; if (fs) fs.onclick = loadSettingsFromSheet; };
   const bindTabs = () => { bindHead(); main.querySelectorAll('[data-es]').forEach(b => b.onclick = () => { esSub = state.esSub = b.dataset.es; save(); renderSettings(); scrollTo(0,0); }); };
   if (esSub === 'entries') { main.innerHTML = head + `<div class="card folder entriesHost" id="entriesHost"></div>`; bindTabs(); renderRegistration(document.getElementById('entriesHost')); return; }
+  const SCORING_ADJ = `<h3 class="fh">Adjudicator panel <span class="muted">— default names; 3-adjudicator events use all three, 1-adjudicator events use the first</span></h3>
+    <div class="row">${[0,1,2].map(i => `<label>Adjudicator ${i+1} <input data-pj="${i}" value="${esc(panel()[i]||'')}"></label>`).join('')}<button id="pjApply">Use these names on built competitions</button></div>
+    <div class="row" style="align-items:flex-end"><label>One-adjudicator competitions <select id="sSingleAdj"><option value="named" ${!singleBlank()?'selected':''}>Adjudicator chosen ahead (name printed on the sheet)</option><option value="blank" ${singleBlank()?'selected':''}>Left blank — the adjudicator writes their name on the sheet</option></select></label>
+      <span class="muted" style="padding-bottom:6px">${singleBlank() ? 'Sheets and labels print with a blank adjudicator line. The code on the sheet ties it to its competition; type the name in when the sheet comes in if you want it on record.' : 'Sheets print with Adjudicator 1’s name.'}</span></div>
+`, SCORING_RULES = `    <h3 class="fh" style="margin-top:14px">US-style placings <span class="muted">— how many are placed (and called to the stage) when a US competition is on “Automatic”</span></h3>
+    <div class="row"><label>Top half, but at least <input id="usMin" type="number" min="1" style="width:70px" value="${s.usMin ?? 3}"></label><label>and at most <input id="usMax" type="number" min="1" style="width:70px" value="${s.usMax ?? 6}"></label>
+      <span class="muted" style="padding-bottom:6px">e.g. 5 dancers → ${usAutoPlaces(5)} placed · 9 → ${usAutoPlaces(9)} · 15 → ${usAutoPlaces(15)}. Ties at the cut-off are all placed.</span></div>
+  <h3 class="fh" style="margin-top:14px">Irish points table</h3>
+    <p class="muted">Points for 1st, 2nd, 3rd… Tied dancers share the average of the places they occupy (e.g. tied for 3rd/4th = (65+60)/2 = 62.5).</p>
+    <textarea id="sPts" rows="3" style="width:100%">${s.points.join(', ')}</textarea>
+    <div class="row" style="margin-top:6px"><button id="sPtsSave" class="primary">Save points table</button><button id="sPtsDef">Reset to standard</button></div>
+`, ADJ_NEW = NEW_UI ? `<h3 class="fh" style="margin-top:16px">Adjudicators <span class="muted">— their names print on the score sheets and labels. 3-adjudicator events use all three; 1-adjudicator events use the first.</span></h3>
+    <div class="row" style="align-items:flex-end">${[0,1,2].map(i => `<label>Feis panel — adjudicator ${i+1} <input data-pj="${i}" value="${esc(panel()[i]||'')}"></label>`).join('')}</div>
+    <div class="muted" style="margin:-2px 0 8px">Used on any day or stage you leave blank below.</div>
+    <div class="tblwrap"><table class="tbl adjTbl"><thead><tr><th>Day</th><th>Stage</th><th>Adjudicator 1</th><th>Adjudicator 2</th><th>Adjudicator 3</th>${stages().some(x => x.split) ? '<th>Half A <small class="muted">(1-adjudicator)</small></th><th>Half B <small class="muted">(1-adjudicator)</small></th>' : ''}</tr></thead><tbody>
+      ${schedDays().flatMap(d => stages().map(x => { const k = `${d}|${x.id}`, p = stagePanels()[k] || [];
+        return `<tr><td>${esc(dayName(d))}</td><td>${esc(x.name)}</td>${[0,1,2].map(i => `<td><input data-spj="${k}|${i}" value="${esc(p[i]||'')}" placeholder="${esc(panel()[i]||`Adjudicator ${i+1}`)}" style="width:100%;min-width:120px"></td>`).join('')}
+          ${stages().some(y => y.split) ? (x.split ? ['A','B'].map(h => `<td><input data-sph="${k}|${h}" value="${esc(stagePanels()[`${k}|${h}`]||'')}" placeholder="same as adjudicator 1" style="width:100%;min-width:120px"></td>`).join('') : '<td></td><td></td>') : ''}</tr>`; })).join('')}
+    </tbody></table></div>
+    <div class="row" style="align-items:flex-end"><label>One-adjudicator competitions <select id="sSingleAdj"><option value="named" ${!singleBlank()?'selected':''}>Adjudicator chosen ahead (name printed on the sheet)</option><option value="blank" ${singleBlank()?'selected':''}>Left blank — the adjudicator writes their name on the sheet</option></select></label>
+      <button id="pjApply">Use these names on built competitions</button></div>
+    <div class="muted">${singleBlank() ? 'One-adjudicator sheets and labels print with a blank adjudicator line; confirm the name when the sheet comes in.' : 'Each competition takes the adjudicators of its day and stage. A one-adjudicator competition already confirmed from its sheet keeps its adjudicator.'}</div>` : '';
   main.innerHTML = head + `
   <div class="card folder">
   <section data-pane="event"><h3 class="fh">Event</h3>
@@ -4009,6 +4070,7 @@ function renderSettings0(){
     ${pinSet() ? `<div class="row" style="align-items:center"><span class="pill ok">PIN is on</span><button id="pinChange">Change PIN</button><button id="pinOff" class="danger">Turn off PIN</button><span class="muted">Use 🔒 Lock in the header when you step away.</span></div>`
       : `<div class="row"><label>New PIN <input id="pin1" type="password" inputmode="numeric" autocomplete="off" style="width:120px"></label><label>Repeat it <input id="pin2" type="password" inputmode="numeric" autocomplete="off" style="width:120px"></label><button id="pinSet" class="primary">Turn on PIN</button></div>
         <div class="muted">The PIN is saved on this device (and in backups). It’s a guardrail, not high security.</div>`}
+    ${NEW_UI ? SCORING_RULES.replace('US-style placings', 'Scoring — US-style placings') : ''}
   </section>
   <section data-pane="schedule"><h3 class="fh">Days</h3>
     <div class="row">${Object.entries(eventDates()).map(([k,v]) => `<label>${k === 'Sat' ? 'First day' : k === 'Sun' ? 'Second day' : k} <input type="date" data-date="${k}" value="${esc(v)}"></label>`).join('')}
@@ -4027,7 +4089,7 @@ function renderSettings0(){
       <label class="inl">starts <input type="time" data-sesstart="${x.id}" value="${esc(x.start||'')}" step="300" min="06:00" max="22:00"></label>
       ${blockSummary(x)}<button class="mini" data-sesup="${i}" ${i?'':'disabled'}>↑</button><button class="mini danger" data-sesdel="${x.id}">Remove</button></div>`).join('')}</div>
     <div class="row"><button id="sesAdd">+ Add block</button><span class="muted" style="padding-bottom:6px">Give each block a start time and competitions fill in automatically from the running order. You can still move one by hand in Entries → Competitions & line-ups.</span></div>
-      ${timingHTML()}
+      ${NEW_UI ? ADJ_NEW : timingHTML()}
   </section>
   <section data-pane="events"><h3 class="fh">Competitions offered <span class="muted">— the registration upload fills these; each competition starts from its event’s settings</span></h3>
     ${(() => { const p = evPending(), built = state.comps.some(c => c.gen);
@@ -4036,22 +4098,12 @@ function renderSettings0(){
         <div class="spacer"></div><button id="evAdd">+ Add event</button><button id="evReset" class="danger">Reset to the standard list</button></div>
       <div class="muted" style="margin:-2px 0 8px">Awards, sash and “everyone else” take effect straight away. Results, given, placed${multiStage() ? ', stage' : ''} and round awards need <b>Apply</b>; rounds and adjudicators need the competitions updated.</div>`; })()}
     ${eventsTableHTML()}
+    ${NEW_UI ? `<details class="tmBox" ${state.tmOpen ? 'open' : ''}><summary><b>⏱ Dance timing</b> <span class="muted">— minutes per group, dancers on stage at once, changeover. Used for the start times on the running order (change one competition’s length there).</span></summary>${timingHTML()}</details>` : ''}
   </section>
   <section data-pane="runorder"><h3 class="fh">Schedule <span class="muted">— the running order the tabulation team follows on the Schedule tab</span></h3>
     <div id="schEdHost">${scheduleEditorHTML()}</div>
   </section>
-  <section data-pane="scoring"><h3 class="fh">Adjudicator panel <span class="muted">— default names; 3-adjudicator events use all three, 1-adjudicator events use the first</span></h3>
-    <div class="row">${[0,1,2].map(i => `<label>Adjudicator ${i+1} <input data-pj="${i}" value="${esc(panel()[i]||'')}"></label>`).join('')}<button id="pjApply">Use these names on built competitions</button></div>
-    <div class="row" style="align-items:flex-end"><label>One-adjudicator competitions <select id="sSingleAdj"><option value="named" ${!singleBlank()?'selected':''}>Adjudicator chosen ahead (name printed on the sheet)</option><option value="blank" ${singleBlank()?'selected':''}>Left blank — the adjudicator writes their name on the sheet</option></select></label>
-      <span class="muted" style="padding-bottom:6px">${singleBlank() ? 'Sheets and labels print with a blank adjudicator line. The code on the sheet ties it to its competition; type the name in when the sheet comes in if you want it on record.' : 'Sheets print with Adjudicator 1’s name.'}</span></div>
-    <h3 class="fh" style="margin-top:14px">US-style placings <span class="muted">— how many are placed (and called to the stage) when a US competition is on “Automatic”</span></h3>
-    <div class="row"><label>Top half, but at least <input id="usMin" type="number" min="1" style="width:70px" value="${s.usMin ?? 3}"></label><label>and at most <input id="usMax" type="number" min="1" style="width:70px" value="${s.usMax ?? 6}"></label>
-      <span class="muted" style="padding-bottom:6px">e.g. 5 dancers → ${usAutoPlaces(5)} placed · 9 → ${usAutoPlaces(9)} · 15 → ${usAutoPlaces(15)}. Ties at the cut-off are all placed.</span></div>
-  <h3 class="fh" style="margin-top:14px">Irish points table</h3>
-    <p class="muted">Points for 1st, 2nd, 3rd… Tied dancers share the average of the places they occupy (e.g. tied for 3rd/4th = (65+60)/2 = 62.5).</p>
-    <textarea id="sPts" rows="3" style="width:100%">${s.points.join(', ')}</textarea>
-    <div class="row" style="margin-top:6px"><button id="sPtsSave" class="primary">Save points table</button><button id="sPtsDef">Reset to standard</button></div>
-  </section>
+  <section data-pane="scoring">${NEW_UI ? '' : SCORING_ADJ + SCORING_RULES}  </section>
   <section data-pane="sync" id="syncPane">${esSub === 'sync' ? syncPaneHTML() : ''}</section>
   <section data-pane="backup"><h3 class="fh">Backup &amp; data</h3>
     <p class="muted">Everything saves automatically in this browser on this laptop. Download a backup before the event and at breaks, so you can move to another laptop if needed.</p>
@@ -4079,7 +4131,8 @@ function renderSettings0(){
     const c = main.querySelector(`[data-evopen="${state.evOpen}"]`); if (c) c.scrollIntoView({ block:'start', behavior:'smooth' }); });
   bindTabs();
   if (esSub === 'sync') bindSyncPane(() => renderSettings());
-  if (esSub === 'schedule') bindTiming(() => renderSettings());
+  if (esSub === (NEW_UI ? 'events' : 'schedule')) bindTiming(() => renderSettings());
+  main.querySelectorAll('details.tmBox').forEach(d => d.ontoggle = () => { state.tmOpen = d.open; });
   if (esSub === 'runorder') { const rer = () => { document.getElementById('schEdHost').innerHTML = scheduleEditorHTML(); bindScheduleEditor(rer); }; bindScheduleEditor(rer); }
   const $ = id => document.getElementById(id);
   main.querySelectorAll('[data-date]').forEach(i => i.onchange = () => { if (i.value) { eventDates()[i.dataset.date] = i.value; save(); renderSettings(); } });
@@ -4109,9 +4162,12 @@ function renderSettings0(){
   $('evReset').onclick = async () => { if (!(await askConfirm('Reset the events list?', 'Your changes to events (and any events you added) are replaced by the standard list. Competitions already built are not changed.', 'Reset'))) return; state.settings.events = DEFAULT_EVENTS(); save(); renderSettings(); };
   main.querySelectorAll('[data-pj]').forEach(i => i.oninput = () => { panel()[+i.dataset.pj] = i.value; save(); });
   if ($('sSingleAdj')) $('sSingleAdj').onchange = e => { s.singleAdj = e.target.value;
-    state.comps.filter(c => c.gen && c.judges.length === 1).forEach(c => { c.judges = [singleBlank() ? 'Adjudicator' : (panel()[0] || 'Adjudicator 1')]; }); save(); renderSettings(); pushDisplay();
+    state.comps.filter(c => c.gen && c.judges.length === 1 && !(NEW_UI && c.adjOk)).forEach(c => { c.judges = NEW_UI ? judgesFor(c, 1) : [singleBlank() ? 'Adjudicator' : (panel()[0] || 'Adjudicator 1')]; }); save(); renderSettings(); pushDisplay();
     toast(singleBlank() ? 'One-adjudicator sheets will print with the adjudicator left blank.' : 'One-adjudicator sheets will print Adjudicator 1’s name.'); };
-  $('pjApply').onclick = () => { const pj = panel(); let n = 0; state.comps.forEach(c => { if (c.gen) { c.judges = c.judges.map((_, i) => pj[i] || `Adjudicator ${i+1}`); n++; } }); save(); pushDisplay(); toast(`Names updated on ${n} competitions.`); };
+  $('pjApply').onclick = () => { if (NEW_UI) { let n = 0; const kept = state.comps.filter(c => c.gen && c.adjOk).length; state.comps.forEach(c => { if (c.gen && stageJudges(c)) n++; }); save(); pushDisplay(); renderSettings(); return toast(`Adjudicator names updated on ${n} competition${n === 1 ? '' : 's'}${kept ? ` — ${kept} confirmed from the sheet kept theirs` : ''}.`); }
+    const pj = panel(); let n = 0; state.comps.forEach(c => { if (c.gen) { c.judges = c.judges.map((_, i) => pj[i] || `Adjudicator ${i+1}`); n++; } }); save(); pushDisplay(); toast(`Names updated on ${n} competitions.`); };
+  main.querySelectorAll('[data-spj]').forEach(i => i.oninput = () => { const [d, st, j] = i.dataset.spj.split('|'), k = `${d}|${st}`, sp = stagePanels(); sp[k] = (sp[k] || ['', '', '']).slice(); sp[k][+j] = i.value; if (!sp[k].some(x => String(x).trim())) delete sp[k]; save(); });
+  main.querySelectorAll('[data-sph]').forEach(i => i.oninput = () => { const sp = stagePanels(); if (i.value.trim()) sp[i.dataset.sph] = i.value; else delete sp[i.dataset.sph]; save(); });
   $('sPf').onchange = e => { s.printFormat = e.target.value; save(); };
   $('sAp').onchange = e => { s.autoPrint = e.target.checked; save(); toast(s.autoPrint ? 'Results will print as soon as a posted competition is fully read back.' : 'Automatic printing off.'); };
   if ($('pinSet')) $('pinSet').onclick = async () => { const a = $('pin1').value.trim(), b = $('pin2').value.trim();
@@ -4631,6 +4687,7 @@ async function rebuildComps(){
   // saved versions point at the new competitions too, so going back still works
   schedSaves().forEach(v => { v.ident = v.ident || {}; (v.items || []).forEach(it => { if (it.kind !== 'comp') return; const o = old.find(x => x.id === it.compId); if (o) v.ident[it.compId] = v.ident[it.compId] || compIdent(o); const n = map[it.compId]; if (n) { v.ident[n.id] = compIdent(n); it.compId = n.id; } });
     Object.keys(v.comps || {}).forEach(id => { const n = map[id]; if (n && !v.comps[n.id]) v.comps[n.id] = v.comps[id]; }); });
+  made.forEach(stageJudges);   // each stage's adjudicators (Days, stages & adjudicators)
   state.comps = state.comps.filter(c => !c.gen && !(c.name === 'New competition' && !c.dancers.length)).concat(made);
   Object.keys(schedule()).forEach(day => normSched(schedule()[day]));
   if (!getComp(state.liveId)) state.liveId = made[0] && made[0].id;
@@ -4640,6 +4697,18 @@ async function rebuildComps(){
   toast(old.length ? `${made.length} competitions updated — schedule kept${tray && kept ? `; ${tray} new to place` : ''}.` : `${made.length} competitions created.`);
 }
 function panel(){ const st = state.settings; return st.judges || (st.judges = (state.reg && state.reg.judges) ? state.reg.judges.slice() : ['Adjudicator 1','Adjudicator 2','Adjudicator 3']); }
+// adjudicators by day & stage (Feis setup → Days, stages & adjudicators); a stage left blank uses the feis panel.
+// On a split stage each half can have its own adjudicator for the one-adjudicator competitions.
+const stagePanels = () => state.settings.stagePanels || (state.settings.stagePanels = {});
+function judgesFor(c, n){
+  const sp = stagePanels(), base = panel(), key = `${compDay(c)}|${compStage(c)}`, p = sp[key] || [];
+  const nm = i => String(p[i] || '').trim() || base[i] || `Adjudicator ${i + 1}`;
+  if (n === 1) { if (singleBlank()) return ['Adjudicator']; const l = compLane(c), h = (l === 'A' || l === 'B') ? String(sp[`${key}|${l}`] || '').trim() : ''; return [h || nm(0)]; }
+  return Array.from({ length: n }, (_, i) => nm(i));
+}
+function stageJudges(c){   // names only — the number of adjudicators stays; a confirmed one-adjudicator competition keeps its adjudicator
+  if (!c || isDemo(c) || c.adjOk) return false; const nj = judgesFor(c, c.judges.length);
+  if (nj.join('|') === c.judges.join('|')) return false; c.judges = nj; return true; }
 function applyEventDefaults(c, e){
   const pj = panel(); c.judges = Array.from({ length: e.judges || 1 }, (_, i) => pj[i] || `Adjudicator ${i+1}`);
   if (c.judges.length === 1 && singleBlank()) c.judges = ['Adjudicator'];   // written on the sheet by whoever adjudicates
@@ -4760,6 +4829,7 @@ function printAwards(){
   const w = window.open('', '_blank'); if (!w) return toast('Can’t open the print view here — use the website or the laptop file.'); w.document.open(); w.document.write(html); w.document.close();
 }
 function printLineups(comps, opts){
+  if (!(opts && opts.html) && comps.length) pcMark(comps, 'lineups');
   const reg = state.reg, byRid = new Map((reg ? reg.dancers : []).map(d => [d.id, d]));
   const ev = evTitle(), logo = state.settings.logoL;
   // scan later on a connected device to open the competition's scoring and placings
@@ -4839,6 +4909,148 @@ function showLineup(c){
   document.addEventListener('keydown', kd, true);
   ov.querySelector('.dlgNo').onclick = close; ov.onclick = e => { if (e.target === ov) close(); };
   ov.querySelector('[data-luprint]').onclick = () => { try { f.contentWindow.print(); } catch (_) { printLineups([c]); } };
+}
+
+/* ---------- Print centre: everything printable, from one place ---------- */
+// What was printed, and whether it has changed since: each competition keeps a fingerprint of what went on paper
+const pcHash = s => { let h = 0; s = String(s); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+const pcSig = (c, kind) => pcHash(kind === 'lineups' ? live(c).map(d => `${d.no}:${d.name}`).join(',') + '|' + (c.roundNames || []).join(',')
+  : c.judges.join('|') + '#' + (kind === 'sheets' ? live(c).map(d => d.no).join(',') : '') + '#' + c.name);
+function pcMark(comps, kind){ const t = Date.now(); comps.forEach(c => { if (!c || isDemo(c)) return; c.printLog = c.printLog || {}; c.printLog[kind] = { at:t, sig:pcSig(c, kind) }; }); save(); }
+const pcStatus = (c, kind) => { if (kind === 'results') return c.printedAt ? 'done' : 'new'; const p = (c.printLog || {})[kind]; return !p ? 'new' : p.sig === pcSig(c, kind) ? 'done' : 'changed'; };
+const resultsReady = c => isPosted(c) && live(c).length && c.judges.every((_, j) => judgeComplete(c, j) === live(c).length);
+const PC_LEVELS = [['tnn','Tír na nÓg'],['ba','Beginner A'],['bb','Beginner B'],['int','Intermediate'],['pc','Preliminary Championship'],['oc','Open Championship & Premiere'],['prem','Premiere Prize (grades)'],['ceili','Céilí'],['other','Other']];
+function pcLevel(c){ const k = c.gen && c.gen.key; if (!k) return 'other'; if (c.gen.ceili || /^c\d/.test(k)) return 'ceili';
+  if (k === 'tnn' || k === 'pc') return k; if (k === 'oc' || k === 'ocp') return 'oc'; if (/-prem$/.test(k)) return 'prem'; const m = k.match(/^(ba|bb|int)-/); return m ? m[1] : 'other'; }
+const PC_WHAT = [
+  { k:'sheets',  g:'Competitions', t:'Score sheets', i:'🖨', kind:'comp', d:'One page per adjudicator, with the competition, adjudicator and dancer numbers filled in.' },
+  { k:'labels',  g:'Competitions', t:'Score-sheet labels', i:'🏷', kind:'comp', d:'Stick-on labels for triplicate sheets — one per adjudicator.', off: () => NO_PHOTOS },
+  { k:'lineups', g:'Competitions', t:'Line-ups', i:'📋', kind:'comp', d:'Side-stage line-ups in dancing order, pairs marked.' },
+  { k:'results', g:'Competitions', t:'Results sheets', i:'🏅', kind:'comp', d:'For competitions whose results are posted at the tables (on-stage ones are announced, not printed).' },
+  { k:'blank',   g:'Competitions', t:'Blank score sheets', i:'📄', kind:'none', d:'Nothing filled in — no competition, adjudicator or numbers.' },
+  { k:'numbers', g:'Dancers', t:'Dancer number labels', i:'🔢', kind:'dancer', d:'Big (Avery 5163) or small (5160) labels — choose the size and order on the next page.' },
+  { k:'checkin', g:'Dancers', t:'Check-in sheet', i:'🎟', kind:'dancer', d:'Every dancer A–Z by last name, with a box to tick.' },
+  { k:'roster',  g:'Dancers', t:'Dancer lists', i:'👥', kind:'dancer', d:'Lists grouped by school, age, event or competition.' },
+  { k:'pickup',  g:'Awards', t:'Award pickup list', i:'🎁', kind:'pickup', d:'Awards waiting to be collected (or already collected), by dancer.' },
+  { k:'awards',  g:'Awards', t:'Award order', i:'🛒', kind:'none', d:'How many medals, trophies and sashes to order, by level and place.' },
+  { k:'schedule',g:'Schedule', t:'Running order', i:'🗓', kind:'sched', d:'The day’s running order with estimated times and a QR code per competition.' },
+  { k:'timeline',g:'Schedule', t:'Timeline', i:'📊', kind:'sched', d:'The day drawn as a timeline, one column per stage.' },
+];
+let pcOpt = null;
+function pcAllComps(){ const seen = new Set(), out = [];
+  schedDays().forEach(d => compsInRunOrder(d).forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } }));
+  state.comps.forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } });
+  const real = out.filter(c => !isDemo(c)); return real.length ? real : out; }
+function pcCompList(o){
+  let cs = o.ids ? pcAllComps().filter(c => o.ids.includes(c.id)) : pcAllComps();
+  if (o.what === 'results') cs = cs.filter(resultsReady);
+  if (!o.ids) {
+    if (o.day !== 'all') cs = cs.filter(c => compDay(c) === o.day);
+    if (o.stage !== 'all') { const [sid, lane] = o.stage.split('|'); cs = cs.filter(c => compStage(c) === sid && (!lane || compLane(c) === lane)); }
+    if (o.block !== 'all') cs = cs.filter(c => sesId(c) === o.block);
+    if (o.level !== 'all') cs = cs.filter(c => pcLevel(c) === o.level);
+    if (o.event !== 'all') cs = cs.filter(c => c.gen && c.gen.key === o.event);
+    const af = o.ageFrom === '' ? null : +o.ageFrom, at = o.ageTo === '' ? null : +o.ageTo;
+    if (af != null || at != null) cs = cs.filter(c => c.gen && c.gen.from != null && (af == null || c.gen.to >= af) && (at == null || c.gen.from <= at));
+  }
+  const kind = o.what;
+  if (o.status !== 'all' && ['sheets','labels','lineups','results'].includes(kind)) cs = cs.filter(c => { const s = pcStatus(c, kind); return o.status === 'todo' ? s !== 'done' : s === o.status; });
+  return cs;
+}
+function pcDancerPred(o){ const reg = state.reg;
+  const card = (t, c) => (o.dday === 'all' || compDay(c) === o.dday) && (o.school === 'all' || t.school === o.school) && o.dAgeFrom === '' && o.dAgeTo === ''
+    && (o.noFrom === '' || +t.no >= +o.noFrom) && (o.noTo === '' || +t.no <= +o.noTo);   // céilí team cards
+  return Object.assign(d => { if (o.dday !== 'all' && !d.events.some(k => (regEvent(k) || {}).day === o.dday)) return false;
+    if (o.school !== 'all' && schoolOf(reg, d) !== o.school) return false;
+    const a = ageOn(d.dob, eventDates().Sat) ?? d.age; if (o.dAgeFrom !== '' && (a == null || a < +o.dAgeFrom)) return false; if (o.dAgeTo !== '' && (a == null || a > +o.dAgeTo)) return false;
+    if (o.noFrom !== '' && +d.no < +o.noFrom) return false; if (o.noTo !== '' && +d.no > +o.noTo) return false; return true; }, { card }); }
+function printCenter(preset = {}){
+  const days = schedDays();
+  pcOpt = Object.assign({ what:'sheets', day:'all', stage:'all', block:'all', level:'all', event:'all', ageFrom:'', ageTo:'', dAgeFrom:'', dAgeTo:'', status:'todo', dday:'all', school:'all', noFrom:'', noTo:'', group:'school', puTab:'not', sday: days[0], off:new Set(), ids:null }, preset);
+  if (preset.ids) pcOpt.status = 'all';
+  const ov = document.createElement('div'); ov.className = 'dlgOv pzOv';
+  ov.innerHTML = `<div class="dlg pzDlg"><div class="pzHead"><h3 style="margin:0">🖨 Print</h3><button class="mini dlgNo pzX" title="Close">✕</button></div><div class="pzBody"></div>
+    <div class="dlgBtns"><span class="pzCount muted"></span><button class="dlgNo">Close</button><button class="dlgOk primary" id="pcGo">Print</button></div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove(); ov.querySelectorAll('.dlgNo').forEach(b => b.onclick = close); ov.onclick = e => { if (e.target === ov) close(); };
+  const body = ov.querySelector('.pzBody'), go = ov.querySelector('#pcGo'), cnt = ov.querySelector('.pzCount');
+  const sel = (id, opts, cur, label) => `<label>${label}<select data-pz="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(cur) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const num = (id, cur, label, ph) => `<label>${label}<input type="number" inputmode="numeric" data-pz="${id}" value="${esc(cur)}" placeholder="${ph || 'any'}" style="width:80px"></label>`;
+  const draw = () => {
+    const o = pcOpt, W = PC_WHAT.find(w => w.k === o.what), all = pcAllComps();
+    const groups = [...new Set(PC_WHAT.map(w => w.g))];
+    let h = `<div class="pzWhat">${groups.map(g => `<div class="pzG"><span class="pzGl">${g}</span>${PC_WHAT.filter(w => w.g === g && !(w.off && w.off())).map(w => `<button data-pzw="${w.k}" class="${w.k === o.what ? 'on' : ''}">${w.i} ${w.t}</button>`).join('')}</div>`).join('')}</div>
+      <div class="muted pzDesc">${esc(W.d)}</div>`;
+    let list = [], n = 0, pages = 0, noun = '';
+    if (W.kind === 'comp') {
+      if (o.ids) h += `<div class="hint pzJust">Just <b>${o.ids.length === 1 ? esc(shortName(getComp(o.ids[0]) || {name:''})) : o.ids.length + ' competitions'}</b> <button class="mini" data-pzall>Choose from all competitions instead</button></div>`;
+      else {
+        const stOpts = [['all','All stages']]; stages().forEach(s => { stOpts.push([s.id, s.name]); if (s.split) { stOpts.push([s.id + '|A', `${s.name} · half A`]); stOpts.push([s.id + '|B', `${s.name} · half B`]); } });
+        const blocks = sessions().filter(x => o.day === 'all' || x.day === o.day);
+        const lv = PC_LEVELS.filter(([k]) => all.some(c => pcLevel(c) === k));
+        const evs = EVENTS().filter(e => all.some(c => c.gen && c.gen.key === e.key) && (o.level === 'all' || all.some(c => c.gen && c.gen.key === e.key && pcLevel(c) === o.level)));
+        const ages = all.filter(c => c.gen && c.gen.from != null).flatMap(c => [c.gen.from, c.gen.to]).filter(x => x != null && x < 90);
+        h += `<div class="row pzF">${sel('day', [['all', days.length > 1 ? 'Both days' : 'All'], ...days.map(d => [d, dayName(d)])], o.day, 'Day')}
+          ${stages().length > 1 || stages().some(s => s.split) ? sel('stage', stOpts, o.stage, 'Stage') : ''}
+          ${blocks.length ? sel('block', [['all','All blocks'], ...blocks.map(x => [x.id, x.name])], o.block, 'Block') : ''}
+          ${lv.length > 1 ? sel('level', [['all','All levels'], ...lv], o.level, 'Level') : ''}
+          ${evs.length > 1 ? sel('event', [['all','All dances'], ...evs.map(e => [e.key, e.label])], o.event, 'Dance') : ''}
+          ${ages.length ? `<span class="pzAge">${num('ageFrom', o.ageFrom, 'Ages from', Math.min(...ages))}${num('ageTo', o.ageTo, 'to', Math.max(...ages))}</span>` : ''}</div>`;
+      }
+      if (o.what !== 'results') h += `<div class="row pzF">${sel('status', [['todo','Not printed yet, or changed since'],['new','Never printed'],['changed','Changed since printed'],['all','Everything, printed or not']], o.status, 'Which')}</div>`;
+      else h += `<div class="row pzF">${sel('status', [['new','Finished, not printed yet'],['all','All finished (reprint)']], o.status === 'todo' ? 'new' : o.status, 'Which')}</div>`;
+      const found = pcCompList(o.what === 'results' && o.status === 'todo' ? Object.assign({}, o, { status:'new' }) : o);
+      list = found.filter(c => !o.off.has(c.id)); n = list.length; noun = 'competition';
+      pages = o.what === 'sheets' ? list.reduce((t, c) => t + c.judges.length * Math.max(1, Math.ceil(live(c).length / 25)), 0)
+        : o.what === 'labels' ? Math.ceil(list.reduce((t, c) => t + c.judges.length, 0) / 10) : list.length;
+      const st = c => { const s = pcStatus(c, o.what); return s === 'done' ? '<span class="pill ok">printed</span>' : s === 'changed' ? '<span class="pill lateP">changed since printed</span>' : ''; };
+      h += found.length ? `<details class="pzList" ${o.ids || found.length <= 6 ? 'open' : ''}><summary>${found.length} competition${found.length === 1 ? '' : 's'} match${o.off.size ? ` — ${found.length - n} left out` : ''} <span class="muted">· tap to see or leave some out</span></summary>
+          <div class="pzRows">${found.map(c => `<label class="pzRow"><input type="checkbox" data-pzc="${c.id}" ${o.off.has(c.id) ? '' : 'checked'}><span><b>${esc(shortName(c))}</b> <small class="muted">${esc(dayName(compDay(c)))} · ${esc(laneName(c))}${sessionOf(c) ? ' · ' + esc(sessionOf(c).name) : ''} · ${live(c).length} dancers</small> ${st(c)}</span></label>`).join('')}</div></details>`
+        : `<div class="muted pzNone">${o.what === 'results' ? 'No posted competition matches that is finished' + (o.status === 'all' ? '' : ' and not printed yet') + '.' : 'Nothing matches — widen the choices above' + (o.status !== 'all' ? ', or choose “Everything” to reprint' : '') + '.'}</div>`;
+    } else if (W.kind === 'dancer') {
+      const reg = state.reg;
+      if (!reg || !reg.dancers.length) h += `<div class="muted pzNone">No dancers yet — load registrations in Feis setup → Entries.</div>`;
+      else {
+        const schools = [...new Set(reg.dancers.map(d => schoolOf(reg, d)))].sort((a, b) => a.localeCompare(b));
+        const nums = reg.dancers.map(d => +d.no).filter(x => !isNaN(x));
+        h += `<div class="row pzF">${sel('dday', [['all','Both days'], ...days.map(d => [d, `Dancing on ${dayName(d)}`])], o.dday, 'Day')}${sel('school', [['all','All schools'], ...schools.map(s => [s, s])], o.school, 'School')}
+          <span class="pzAge">${num('dAgeFrom', o.dAgeFrom, 'Ages from')}${num('dAgeTo', o.dAgeTo, 'to')}</span>${o.what === 'numbers' ? `<span class="pzAge">${num('noFrom', o.noFrom, 'Numbers from', Math.min(...nums))}${num('noTo', o.noTo, 'to', Math.max(...nums))}</span>` : ''}</div>
+          ${o.what === 'roster' ? `<div class="row pzF">${sel('group', [['school','By school (each on a new page)'],['age','By age'],['event','By event'],['comp','By competition, line-up order'],['all','One list by number']], o.group, 'Group')}</div>` : ''}`;
+        n = reg.dancers.filter(pcDancerPred(o)).length; noun = 'dancer';
+        pages = o.what === 'numbers' ? Math.ceil(n / 10) : Math.ceil(n / 38);
+        if (!n) h += `<div class="muted pzNone">No dancers match.</div>`;
+      }
+    } else if (W.kind === 'sched') {
+      h += `<div class="row pzF">${sel('sday', days.map(d => [d, dayLabel(d)]), o.sday, 'Day')}${stages().length > 1 ? sel('stage', [['all','All stages'], ...stages().map(s => [s.id, s.name])], o.stage.split('|')[0], 'Stage') : ''}</div>`;
+      n = 1;
+    } else if (W.kind === 'pickup') {
+      const reg = state.reg, schools = reg ? [...new Set(reg.dancers.map(d => schoolOf(reg, d)))].sort((a, b) => a.localeCompare(b)) : [];
+      h += `<div class="row pzF">${sel('puTab', [['not','Not picked up yet'],['got','Already picked up']], o.puTab, 'Show')}${schools.length ? sel('school', [['all','All schools'], ...schools.map(s => [s, s])], o.school, 'School') : ''}</div>`;
+      n = 1;
+    } else n = 1;
+    body.innerHTML = h;
+    cnt.innerHTML = noun ? (n ? `<b>${n}</b> ${noun}${n === 1 ? '' : 's'}${pages ? ` · about ${pages} page${pages === 1 ? '' : 's'}` : ''}` : 'Nothing to print') : '';
+    go.disabled = !n; go.textContent = noun && n ? `🖨 Print ${n} ${noun}${n === 1 ? '' : 's'}` : '🖨 Print';
+    body.querySelectorAll('[data-pzw]').forEach(b => b.onclick = () => { o.what = b.dataset.pzw; o.off = new Set(); if (o.what === 'results' && o.status === 'todo') o.status = 'new'; else if (o.what !== 'results' && o.status === 'new' && !o.ids) o.status = 'todo'; draw(); });
+    body.querySelectorAll('[data-pz]').forEach(i => { const f = () => { o[i.dataset.pz] = i.value; if (i.dataset.pz === 'level') o.event = 'all'; if (i.dataset.pz === 'day') o.block = 'all'; o.off = new Set(); draw(); };
+      if (i.tagName === 'SELECT') i.onchange = f; else i.onchange = f; });
+    body.querySelectorAll('[data-pzc]').forEach(i => i.onchange = () => { if (i.checked) o.off.delete(i.dataset.pzc); else o.off.add(i.dataset.pzc); const keep = body.querySelector('.pzList'); const op = keep && keep.open; draw(); const k2 = body.querySelector('.pzList'); if (k2 && op) k2.open = true; });
+    const pa = body.querySelector('[data-pzall]'); if (pa) pa.onclick = () => { o.ids = null; o.status = 'todo'; o.off = new Set(); draw(); };
+    go.onclick = () => {
+      if (W.kind === 'comp') { if (o.what === 'sheets') printSheets(list); else if (o.what === 'labels') printLabels(list, list.length === 1 ? shortName(list[0]) : `${list.length} competitions`);
+        else if (o.what === 'lineups') printLineups(list); else if (o.what === 'results') { printResultsFor(list).then(() => document.body.contains(ov) && draw()); return; } }
+      else if (o.what === 'blank') printSheets([], { blank:true });
+      else if (o.what === 'numbers') printDancerLabels(pcDancerPred(o));
+      else if (o.what === 'checkin') printCheckinAZ(pcDancerPred(o));
+      else if (o.what === 'roster') printRoster(pcDancerPred(o), o.group);
+      else if (o.what === 'pickup') { const keep = { tab: puView.tab, q: puView.q }; puView.tab = o.puTab; puView.q = o.school === 'all' ? '' : o.school; try { printPuList(); } finally { Object.assign(puView, keep); } }
+      else if (o.what === 'awards') printAwards();
+      else if (o.what === 'schedule') printSchedule(o.sday, o.stage.split('|')[0]);
+      else if (o.what === 'timeline') printTimeline(o.sday, o.stage.split('|')[0]);
+      if (W.kind === 'comp') draw();   // the printed ones drop off the "not printed yet" list
+    };
+  };
+  draw();
 }
 
 /* ---------- Excel reading ---------- */
@@ -4934,7 +5146,9 @@ function renderRegistration(host){
     $('regQ').oninput = e => { regView.q = e.target.value; draw(); }; if ($('regF')) $('regF').onchange = e => { regView.filter = e.target.value; drawRegRows(); };
     main.querySelectorAll('[data-group]').forEach(b => b.onclick = () => { regView.group = b.dataset.group; render(); });
     if ($('rosOpen')) { $('rosOpen').onclick = () => main.querySelectorAll('#rosBody details').forEach(d => d.open = true); $('rosClose').onclick = () => main.querySelectorAll('#rosBody details').forEach(d => d.open = false); }
-    $('rosPrint').onclick = () => printRoster(); $('rosCheckin').onclick = () => printCheckinAZ(); $('rosLabels').onclick = () => printDancerLabels(); draw(); }
+    if ($('rosPrint')) { $('rosPrint').onclick = () => printRoster(); $('rosCheckin').onclick = () => printCheckinAZ(); $('rosLabels').onclick = () => printDancerLabels(); }
+    if ($('pcDancers')) $('pcDancers').onclick = () => printCenter({ what:'roster', group: ['school','age','event','comp'].includes(regView.group) ? regView.group : 'school' });
+    draw(); }
   main.querySelectorAll('[data-school]').forEach(inp => inp.onchange = () => { reg.schoolNames[inp.dataset.school] = inp.value.trim() || inp.value; save(); });
   main.querySelectorAll('[data-schoolroster]').forEach(b => b.onclick = () => go('dancers', { group:'school', q: b.dataset.schoolroster }));
   main.querySelectorAll('[data-adj]').forEach(inp => inp.oninput = () => { reg.judges[+inp.dataset.adj] = inp.value; save(); });
@@ -4953,7 +5167,8 @@ function renderRegistration(host){
   if ($('lbSat')) { $('lbSat').onclick = () => printLabels(compsInRunOrder('Sat'), dayLabel('Sat')); $('lbSun').onclick = () => printLabels(compsInRunOrder('Sun'), dayLabel('Sun')); }
   if ($('delEmpty')) $('delEmpty').onclick = () => { const e = state.comps.filter(c => !isDemo(c) && isEmptyComp(c)); deleteComps(e.map(c => c.id), `${e.length} competition${e.length === 1 ? '' : 's'} with no dancers and no marks`); };
   if ($('delPick')) $('delPick').onclick = () => deletePicker();
-  if ($('awXlsx')) { $('awXlsx').onclick = exportAwards; $('awPrint').onclick = printAwards; }
+  if ($('awXlsx')) $('awXlsx').onclick = exportAwards; if ($('awPrint')) $('awPrint').onclick = printAwards;
+  if ($('pcComps')) $('pcComps').onclick = () => printCenter({ what:'sheets' });
   if ($('mpCheck')) $('mpCheck').onclick = matchPrintedDlg;
   if ($('dupCheck')) $('dupCheck').onclick = fixDupsDlg;
   if ($('prSat')) { $('prSat').onclick = () => printLineups(sortedGen().filter(c => c.gen.day === 'Sat')); $('prSun').onclick = () => printLineups(sortedGen().filter(c => c.gen.day === 'Sun')); $('prSheets').onclick = () => printSheets([...compsInRunOrder('Sat'), ...compsInRunOrder('Sun')]); $('prSheetsSat').onclick = () => printSheets(compsInRunOrder('Sat')); $('prSheetsSun').onclick = () => printSheets(compsInRunOrder('Sun')); }
@@ -4987,7 +5202,7 @@ function regSubHTML(sub, reg, iss, comps, evRows){
     const nS = new Set(reg.dancers.map(d => schoolOf(reg,d))).size, nE = reg.dancers.reduce((t,d) => t + d.events.length, 0);
     return `<div class="row dancerBar" style="align-items:center">
         <span class="muted">Show</span><div class="seg">${[['all',`Everyone`],['school',`By school (${nS})`],['age','By age'],['event',`By event`],['comp','By competition']].map(([k,l]) => `<button data-group="${k}" class="${k===g?'on':''}" ${k==='comp' && !comps.length ? 'disabled title="Create competitions first"' : ''}>${l}</button>`).join('')}</div>
-        <div class="spacer"></div><button id="rosPrint">🖨 Print this view</button><button id="rosCheckin" title="Every dancer A–Z by last name, with a box to tick — the paper copy for the check-in table">🖨 Check-in sheet (A–Z)</button><button id="rosLabels">🏷 Number labels</button></div>
+        <div class="spacer"></div>${NEW_UI ? `<button id="pcDancers" title="Dancer lists, check-in sheet, number labels — by day, school, age or number">🖨 Print…</button>` : `<button id="rosPrint">🖨 Print this view</button><button id="rosCheckin" title="Every dancer A–Z by last name, with a box to tick — the paper copy for the check-in table">🖨 Check-in sheet (A–Z)</button><button id="rosLabels">🏷 Number labels</button>`}</div>
       <div class="row" style="align-items:center"><input id="regQ" placeholder="Search name, number or school" value="${esc(regView.q)}" style="flex:1;min-width:200px">
         ${all ? `<select id="regF"><option value="all">All dancers</option><option value="oc" ${regView.filter==='oc'?'selected':''}>Open Championship</option><option value="modern" ${regView.filter==='modern'?'selected':''}>Missing modern set</option><option value="boys" ${regView.filter==='boys'?'selected':''}>Boys</option><option value="unknown" ${regView.filter==='unknown'?'selected':''}>Unrecognized events</option>${checkinOn() ? `<option value="notin" ${regView.filter==='notin'?'selected':''}>Not checked in</option>` : ''}</select><span class="muted" id="regCount"></span>`
           : `<button id="rosOpen" class="mini">Expand all</button><button id="rosClose" class="mini">Collapse all</button>`}</div>
@@ -4996,17 +5211,18 @@ function regSubHTML(sub, reg, iss, comps, evRows){
   if (sub === 'ages') return `${staleBanner()}<details class="autoRules"><summary>ⓘ How the automatic age groups are made</summary><ol>${AGE_RULES.map(([t, d]) => `<li><b>${esc(t)}.</b> ${esc(d)}</li>`).join('')}</ol></details><div class="stepHead"><h3 class="fh" style="margin:0">Age groups <span class="muted">— tap between ages to split or join; aim for 6+ per group. Ages are on the day of the event.</span></h3><div class="spacer"></div><button id="bandsAuto">Auto-split all</button></div>
     <div class="bandList">${evRows.map(({e,n}) => bandRowHTML(reg, e, n)).join('')}</div>`;
   return `${staleBanner()}<h3 class="fh">Competitions & line-ups</h3>
-    <div class="hint">Built from <b>Feis setup</b>: each event’s adjudicators, rounds, Irish/US style and placing, with the adjudicator panel <b>${panel().map(esc).join(', ')}</b>. <button class="mini" id="toES">Edit in Competitions offered ▸</button> Change a single competition with its ⚙ Details.</div>
+    <div class="hint">Built from <b>Feis setup</b>: each event’s adjudicators, rounds, Irish/US style and placing, ${NEW_UI ? 'with the adjudicators set for each day and stage in <b>Days, stages &amp; adjudicators</b>.' : `with the adjudicator panel <b>${panel().map(esc).join(', ')}</b>.`} <button class="mini" id="toES">Edit in Competitions offered ▸</button> Change a single competition with its ⚙ Details.</div>
     ${(() => { const t = tidyFind(); return t.drop.size ? `<div class="hint staleHint"><b>${t.drop.size} stray competition${t.drop.size === 1 ? '' : 's'}</b> — ${t.blank ? `${t.blank} blank (no name, no dancers)` : ''}${t.blank && t.dup ? ' and ' : ''}${t.dup ? `${t.dup} duplicate${t.dup === 1 ? '' : 's'} of the same event and age group` : ''}, none with marks. <button class="primary mini" id="tidyGo">Review &amp; remove…</button></div>` : ''; })()}
+    ${NEW_UI ? NEW_COMPS_ROW(comps) + '<!--' : ''}
     <div class="row"><button id="byHand2" class="mini" style="order:9">+ Add a competition by hand</button><button id="delPick" class="mini" style="order:10" title="Pick competitions to delete">🗑 Delete competitions…</button>${state.comps.some(c => !isDemo(c) && isEmptyComp(c)) ? `<button id="delEmpty" class="mini" style="order:11" title="Competitions with no dancers and no marks">🧹 Remove ${state.comps.filter(c => !isDemo(c) && isEmptyComp(c)).length} empty</button>` : ''}<button id="genComps" class="primary">${comps.length ? '↻ Rebuild competitions & line-ups' : '✓ Create competitions & line-ups'}</button><label class="btnlike" title="The céilí team sheet (tabs “2 Hand Entries”, “4 Hand Entries”, “8 Hand Entries”) — numbers from 700">🍀 ${state.reg && state.reg.ceili ? 'Re-import' : 'Import'} céilí teams<input type="file" id="ceiliIn" accept=".xlsx,.xls" hidden></label>
-      ${comps.length ? `<button id="prSat">🖨 Saturday line-ups</button><button id="mpCheck" title="Compare with line-ups already printed">🧾 Check printed line-ups…</button><button id="dupCheck" title="Find dancers listed twice in a competition">🧹 Check rosters for duplicates${rosterDups().length ? ` (${rosterDups().length})` : ''}</button><button id="prSun">🖨 Sunday line-ups</button><button id="lbSat" title="Stick-on QR labels for the adjudicators' triplicate sheets">🏷 Score-sheet labels — Saturday</button><button id="lbSun">🏷 Score-sheet labels — Sunday</button><button id="prSheetsSat" title="Full printed score sheets on plain paper — Saturday's competitions">🖨 Full score sheets — Saturday</button><button id="prSheetsSun" title="Full printed score sheets on plain paper — Sunday's competitions">🖨 Full score sheets — Sunday</button><button id="prSheets" title="Full printed score sheets on plain paper — both days">🖨 Full score sheets — both days</button><button id="prBlank" title="Mark sheets with nothing filled in — no competition, adjudicator or numbers">🖨 Blank score sheets</button>${comps.some(c => c.gen.ceili) ? `<button id="ceSheets" title="Score sheets for the céilí competitions only">🍀 Céilí score sheets</button><button id="ceLabels" title="Score-sheet labels for the céilí competitions only">🍀 Céilí score-sheet labels</button>` : ''}<button id="awXlsx" title="How many awards to order: each competition's competitors and places, and totals of 1st, 2nd, 3rd… by level">🏅 Award order (Excel)</button><button id="awPrint">🖨 Award order</button>` : ''}</div>
+      ${comps.length ? `<button id="prSat">🖨 Saturday line-ups</button><button id="mpCheck" title="Compare with line-ups already printed">🧾 Check printed line-ups…</button><button id="dupCheck" title="Find dancers listed twice in a competition">🧹 Check rosters for duplicates${rosterDups().length ? ` (${rosterDups().length})` : ''}</button><button id="prSun">🖨 Sunday line-ups</button><button id="lbSat" title="Stick-on QR labels for the adjudicators' triplicate sheets">🏷 Score-sheet labels — Saturday</button><button id="lbSun">🏷 Score-sheet labels — Sunday</button><button id="prSheetsSat" title="Full printed score sheets on plain paper — Saturday's competitions">🖨 Full score sheets — Saturday</button><button id="prSheetsSun" title="Full printed score sheets on plain paper — Sunday's competitions">🖨 Full score sheets — Sunday</button><button id="prSheets" title="Full printed score sheets on plain paper — both days">🖨 Full score sheets — both days</button><button id="prBlank" title="Mark sheets with nothing filled in — no competition, adjudicator or numbers">🖨 Blank score sheets</button>${comps.some(c => c.gen.ceili) ? `<button id="ceSheets" title="Score sheets for the céilí competitions only">🍀 Céilí score sheets</button><button id="ceLabels" title="Score-sheet labels for the céilí competitions only">🍀 Céilí score-sheet labels</button>` : ''}<button id="awXlsx" title="How many awards to order: each competition's competitors and places, and totals of 1st, 2nd, 3rd… by level">🏅 Award order (Excel)</button><button id="awPrint">🖨 Award order</button>` : ''}</div>${NEW_UI ? '-->' : ''}
     ${comps.length && sessions().length ? `<div class="row bulkRow"><span class="muted">Put every</span><select id="bulkEv">${EVENTS().filter(e => comps.some(c => c.gen.key===e.key)).map(e => `<option value="${e.key}">${esc(e.label)}</option>`).join('')}</select><span class="muted">competition into</span><select id="bulkSes">${sessions().map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><button id="bulkGo">Apply</button><button class="mini" id="toBlocks">Edit blocks ▸</button></div>` : ''}
     ${comps.length ? genSummaryHTML(comps) : '<div class="muted">This creates one competition per event and age group, with the dancers in line-up order: hornpipe modern sets first, then treble jig, and no two dancers from the same school back to back.</div>'}`;
 }
 /* ---------- roster ---------- */
-function rosterGroups(){
-  const reg = state.reg, g = regView.group || 'all', q = (regView.q || '').trim().toLowerCase();
-  const match = d => !q || `${d.no} ${d.name} ${schoolOf(reg,d)}`.toLowerCase().includes(q);
+function rosterGroups(grp, pred){
+  const reg = state.reg, g = grp || regView.group || 'all', q = grp ? '' : (regView.q || '').trim().toLowerCase();
+  const match = d => (!pred || pred(d)) && (!q || `${d.no} ${d.name} ${schoolOf(reg,d)}`.toLowerCase().includes(q));
   const sat = d => ageOn(d.dob, eventDates().Sat) ?? d.age;
   const byNo = (a,b) => a.no - b.no;
   if (g === 'all') return [{ title:'All dancers', list: reg.dancers.filter(match).sort(byNo) }];
@@ -5034,9 +5250,9 @@ function drawRoster(){
 const lastFirst = n => { const p = String(n || '').trim().split(/\s+/); if (p.length < 2) return [p[0] || '', '']; let i = p.length - 1;
   if (/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(p[i]) && i > 1) i--; while (i > 1 && /^(mc|mac|o'|de|van|von|la|le|di|da|del|st\.?)$/i.test(p[i - 1])) i--;
   return [p.slice(i).join(' '), p.slice(0, i).join(' ')]; };
-function printCheckinAZ(){
+function printCheckinAZ(pred){
   const reg = state.reg; if (!reg || !reg.dancers.length) return toast('No dancers yet — load registrations first.');
-  const rows = reg.dancers.map(d => { const [l, f] = lastFirst(d.name); return { l, f, d }; }).sort((a, b) => a.l.localeCompare(b.l, 'en', { sensitivity:'base' }) || a.f.localeCompare(b.f, 'en', { sensitivity:'base' }));
+  const rows = reg.dancers.filter(pred || (() => true)).map(d => { const [l, f] = lastFirst(d.name); return { l, f, d }; }).sort((a, b) => a.l.localeCompare(b.l, 'en', { sensitivity:'base' }) || a.f.localeCompare(b.f, 'en', { sensitivity:'base' }));
   let letter = '';
   const body = rows.map(r => { const L = (r.l[0] || '?').toUpperCase(), head = L !== letter ? (letter = L, `<tr class="lt"><td colspan="6">${esc(L)}</td></tr>`) : '';
     return `${head}<tr><td class="bx">☐</td><td><b>${esc(r.l)}</b>, ${esc(r.f)}</td><td class="no"><b>${esc(r.d.no)}</b></td><td>${ageOn(r.d.dob, eventDates().Sat) ?? r.d.age ?? ''}</td><td>${esc(schoolOf(reg, r.d))}</td><td class="ini"></td></tr>`; }).join('');
@@ -5053,8 +5269,8 @@ function printCheckinAZ(){
   const w = window.open('', '_blank'); if (!w) return toast('The check-in sheet can’t open here.');
   w.document.open(); w.document.write(html); w.document.close();
 }
-function printRoster(){
-  const reg = state.reg, groups = rosterGroups(), g = regView.group || 'all', ev = evTitle();
+function printRoster(pred, grp){
+  const reg = state.reg, g = grp || regView.group || 'all', groups = grp ? rosterGroups(g, pred).filter(x => x.list.length) : rosterGroups(), ev = evTitle();
   const titles = { all:'All dancers', school:'By school', age:'By age', event:'By event', comp:'By competition (line-up order)' };
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Roster — ${titles[g]}</title><style>
     @page { size: letter; margin: 0.5in; } body { margin:0; font-family: Arial, sans-serif; color:#111; font-size:10pt; }
@@ -5074,6 +5290,10 @@ function printRoster(){
 }
 const sortedGen = () => { const sIdx = c => { const i = sessions().findIndex(x => x.id === sesId(c)); return i < 0 ? 99 : i; };
   return state.comps.filter(c => c.gen).sort((a,b) => (a.gen.day === b.gen.day ? 0 : a.gen.day === 'Sat' ? -1 : 1) || sIdx(a) - sIdx(b) || a.gen.order - b.gen.order || a.gen.from - b.gen.from); };
+const NEW_COMPS_ROW = comps => `<div class="row" style="align-items:center"><button id="genComps" class="primary">${comps.length ? '↻ Rebuild competitions & line-ups' : '✓ Create competitions & line-ups'}</button>
+      ${comps.length ? `<button id="pcComps" title="Score sheets, labels, line-ups, results — choose the day, stage, block, level or ages">🖨 Print…</button>
+      <details class="ddMenu"><summary>🧾 Check${rosterDups().length ? ` <span class="tabBadge">${rosterDups().length}</span>` : ''} ▾</summary><div><button id="mpCheck" title="Compare with line-ups already printed">🧾 Check printed line-ups…</button><button id="dupCheck" title="Find dancers listed twice in a competition">🧹 Check rosters for duplicates${rosterDups().length ? ` (${rosterDups().length})` : ''}</button></div></details>` : ''}
+      <details class="ddMenu"><summary>⋯ More ▾</summary><div><button id="byHand2">+ Add a competition by hand</button><button id="delPick" title="Pick competitions to delete">🗑 Delete competitions…</button>${state.comps.some(c => !isDemo(c) && isEmptyComp(c)) ? `<button id="delEmpty" title="Competitions with no dancers and no marks">🧹 Remove ${state.comps.filter(c => !isDemo(c) && isEmptyComp(c)).length} empty</button>` : ''}<label class="btnlike" title="The céilí team sheet (tabs “2 Hand Entries”, “4 Hand Entries”, “8 Hand Entries”) — numbers from 700">🍀 ${state.reg && state.reg.ceili ? 'Re-import' : 'Import'} céilí teams<input type="file" id="ceiliIn" accept=".xlsx,.xls" hidden></label>${comps.length ? `<button id="awXlsx" title="How many awards to order: each competition's competitors and places, and totals of 1st, 2nd, 3rd… by level">🏅 Award order (Excel)</button>` : ''}</div></details></div>`;
 function genSummaryHTML(comps){
   const byDay = d => sortedGen().filter(c => c.gen.day === d);
   const hasSes = sessions().length;
