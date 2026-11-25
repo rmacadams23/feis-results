@@ -105,6 +105,7 @@
   @media (max-width:640px){ .pzGl { width:100%; } .pzF select, .pzF input { font-size:16px; } .dlg.pzDlg { padding:14px; } }
   .tmBox { margin-top:14px; border:1px solid var(--line); border-radius:10px; padding:10px 14px; } .tmBox > summary { cursor:pointer; } .tmBox .fh { margin-top:10px !important; }
   .ovPills { display:flex; flex-wrap:wrap; gap:6px; align-items:center; } .ovSeg { flex-wrap:wrap; } .ddMenu > summary.on { background:var(--pri); color:#fff; border-color:var(--pri); }
+  .ddH { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 6px 2px; } .ddMenu > div > button.on { background:#eef1f5; color:var(--ink); border-color:var(--pri); font-weight:700; } .ovLvlOn { border-radius:18px; background:var(--pri); color:#fff; border-color:var(--pri); padding:6px 12px; }
   /* compact button menus */
   .ddMenu { position:relative; display:inline-block; } .ddMenu > summary { list-style:none; cursor:pointer; } .ddMenu > summary::-webkit-details-marker { display:none; }
   .ddMenu > summary { display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:14px; }
@@ -2653,22 +2654,28 @@ function filterOptionsHTML(cur){
     <option value="other" ${cur==='other'?'selected':''}>Demo / added by hand</option>
     <option value="ann" ${cur==='ann'?'selected':''}>✓ Finished only — ${state.comps.filter(ovDone).length}</option>`;
 }
+// level filter (works together with the day / block pills)
+let ovLevel = 'all';
+const OV_LEVELS = [['champ','Championships'],['int','Intermediate'],['bb','Beginner B'],['ba','Beginner A'],['tnn','Tír na nÓg'],['ceili','Céilí']];
+function ovLvl(c){ const k = c.gen && c.gen.key; if (!k) return 'other'; if (c.gen.ceili || /^c\d/.test(k)) return 'ceili'; if (['pc','oc','ocp'].includes(k)) return 'champ'; if (k === 'tnn') return 'tnn'; const m = k.match(/^(ba|bb|int)-/); return m ? m[1] : 'other'; }
 // Event Scoring filter as pills: day, then that day's blocks; the rarely used ones under More
 function ovPillsHTML(){
   const f = ovDay, ses = f.startsWith('ses:') ? sessions().find(x => x.id === f.slice(4)) : null, day = f.startsWith('day:') ? f.slice(4) : ses ? ses.day : null;
   const pill = (v, t, on) => `<button data-ovf="${esc(v)}" class="${on ? 'on' : ''}">${t}</button>`;
   const blocks = day ? sessions().filter(x => x.day === day) : [];
   const more = [...(multiStage() ? stages().map(x => ['stg:' + x.id, esc(x.name)]) : []), ...(sessions().length ? [['unsched', 'Not in a block yet']] : []), ['other', 'Demo / added by hand'], ['ann', `✓ Finished only (${state.comps.filter(ovDone).length})`]];
-  const mOn = more.find(([v]) => v === f);
+  const lv = OV_LEVELS.filter(([k]) => state.comps.some(c => ovLvl(c) === k));
+  const mOn = more.find(([v]) => v === f), lOn = lv.find(([k]) => k === ovLevel);
   return `<div class="ovPills"><div class="seg ovSeg">${schedDays().map(d => pill('day:' + d, esc(dayName(d)), day === d)).join('')}${pill('all', 'All', f === 'all')}</div>
     ${blocks.length ? `<div class="seg ovSeg">${pill('day:' + day, 'All day', f === 'day:' + day)}${blocks.map(x => pill('ses:' + x.id, esc(x.name.replace(new RegExp('^' + dayName(day) + '\\s+', 'i'), '') || x.name), f === 'ses:' + x.id)).join('')}</div>` : ''}
-    <details class="ddMenu"><summary class="${mOn ? 'on' : ''}">${mOn ? mOn[1] : 'More'} ▾</summary><div>${more.map(([v, t]) => `<button data-ovf="${esc(v)}">${t}</button>`).join('')}</div></details></div>`;
+    ${lOn ? `<button class="on ovLvlOn" data-ovl="all" title="Show every level">${esc(lOn[1])} ✕</button>` : ''}
+    <details class="ddMenu"><summary class="${mOn ? 'on' : ''}">${mOn ? mOn[1] : 'More'} ▾</summary><div>${lv.length > 1 ? `<div class="ddH">Level</div>${lv.map(([k, t]) => `<button data-ovl="${k}" class="${k === ovLevel ? 'on' : ''}">${esc(t)}</button>`).join('')}<button data-ovl="all" class="${ovLevel === 'all' ? 'on' : ''}">All levels</button><div class="ddH">Other</div>` : ''}${more.map(([v, t]) => `<button data-ovf="${esc(v)}">${t}</button>`).join('')}</div></details></div>`;
 }
 function ovOrderAll(){ const keep = ovDay; ovDay = 'all'; const l = ovComps(true); ovDay = keep; return l; }   // every competition, hidden ones too
 function ovComps(withHidden){
   const f = ovDay;
   if (f === 'ann') return state.comps.filter(ovDone);   // finished (announced or printed)
-  const list = state.comps.filter(c => withHidden || ovShowAnn || !ovDone(c)).filter(c => f === 'all' || (f.startsWith('day:') && compDay(c) === f.slice(4)) || (f.startsWith('ses:') && sesId(c) === f.slice(4)) || (f === 'unsched' && !sesId(c) && c.gen) || (f.startsWith('stg:') && c.gen && compStage(c) === f.slice(4)) || (f === 'other' && !c.gen));
+  const list = state.comps.filter(c => withHidden || ovShowAnn || !ovDone(c)).filter(c => withHidden || ovLevel === 'all' || ovLvl(c) === ovLevel).filter(c => f === 'all' || (f.startsWith('day:') && compDay(c) === f.slice(4)) || (f.startsWith('ses:') && sesId(c) === f.slice(4)) || (f === 'unsched' && !sesId(c) && c.gen) || (f.startsWith('stg:') && c.gen && compStage(c) === f.slice(4)) || (f === 'other' && !c.gen));
   const sIdx = c => { const i = sessions().findIndex(x => x.id === sesId(c)); return i < 0 ? 99 : i; };
   const rank = c => c.gen ? (compDay(c) === 'Sat' ? 1 : 2) : (isDemo(c) ? 3 : 0);
   return list.map((c,i) => [c,i]).sort((a,b) => rank(a[0]) - rank(b[0]) || sIdx(a[0]) - sIdx(b[0]) || (a[0].gen && b[0].gen ? a[0].gen.order - b[0].gen.order || a[0].gen.from - b[0].gen.from : a[1]-b[1])).map(x => x[0]);
@@ -3391,6 +3398,7 @@ function renderOverview(){
   const opp = document.getElementById('ovPrintPosted'); if (opp) opp.onclick = () => printResultsFor(ovComps().filter(isPosted));
   const od = document.getElementById('ovDay'); if (od) od.onchange = e => { ovDay = e.target.value; renderOverview(); };
   main.querySelectorAll('[data-ovf]').forEach(b => b.onclick = () => { ovDay = b.dataset.ovf; renderOverview(); });
+  main.querySelectorAll('[data-ovl]').forEach(b => b.onclick = () => { ovLevel = b.dataset.ovl; renderOverview(); });
   main.querySelectorAll('[data-ov]').forEach(b => b.onclick = () => { ovView = b.dataset.ov; try { localStorage.setItem(KEY + '.ovView', ovView); } catch (_) {} renderOverview(); });
   main.querySelectorAll('[data-ovd]').forEach(b => b.onclick = () => { ovTDay = b.dataset.ovd; renderOverview(); });
   const oc2 = document.getElementById('ovColors'); if (oc2) oc2.onclick = levelColorsDlg;
